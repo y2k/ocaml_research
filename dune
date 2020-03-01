@@ -1,0 +1,3 @@
+(executable
+  (name main)
+  (libraries str cohttp-lwt-unix cohttp lwt js_of_ocaml))
