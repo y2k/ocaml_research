@@ -68,4 +68,4 @@ let () =
                Effetcs.load_url url >>= (next >> loop)
            | Component.Repl (text, next) -> Effetcs.repl text >>= (next >> loop))
     |> Lwt.all |> Lwt.map ignore in
-  Lwt_main.run (loop Component.Init)
+  [loop Component.Init; Server.run] |> Lwt.all |> Lwt_main.run |> ignore
