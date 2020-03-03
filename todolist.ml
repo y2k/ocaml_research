@@ -1,21 +1,12 @@
 module Domain = struct
   let toCommand text =
-    let find_value key =
-      let r = Str.regexp (".*" ^ key ^ {|=\([^&]+\).*|}) in
-      if Str.string_match r text 0 then Some (Str.matched_group 1 text)
-      else None in
-    find_value "id"
+    let find key xs =
+      xs |> List.assoc_opt key |> Option.map (fun x -> List.hd x) in
+    let parts = Uri.query_of_encoded text in
+    parts |> find "id"
     |> Fun.flip Option.bind (fun id ->
-           find_value "value" |> Option.map (fun value -> (id, value)))
+           parts |> find "value" |> Option.map (fun value -> (id, value)))
     |> Option.fold ~none:("", "") ~some:Fun.id
-
-  let isUrl text =
-    let r = Str.regexp {|\(https://\|http://\).+|} in
-    Str.string_match r text 0
-
-  let getTitle html =
-    let r = Str.regexp {|.+<title>\(.+?\)</title>.+|} in
-    if Str.string_match r html 0 then Some (Str.matched_group 1 html) else None
 
   let remove xs v = xs |> List.filter (fun x -> x <> v)
 end
@@ -40,19 +31,6 @@ end
 module View = struct
   open Dsl
 
-  let scaffold node =
-    html []
-      [ head []
-          [ title [] [text "OCaml Research"]; meta [("charset", "utf-8")]
-          ; meta
-              [ ("name", "viewport")
-              ; ("content", "width=device-width, initial-scale=1") ]
-          ; link
-              [ ("rel", "stylesheet")
-              ; ( "href"
-                , "https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css"
-                ) ] ]; body [] [node] ]
-
   let item title =
     div [("style", "margin: 8px")]
       [ div [cls "card"]
@@ -75,9 +53,12 @@ module View = struct
               [text "Add"] ] ]
 
   let view (model : Update.model) =
-    article [cls "panel is-primary"]
-      [ p [cls "panel-heading"] [text "Todo List"]
-      ; div [cls "panel-block"] [add_item]
-      ; div [] (model.todos |> List.map item) ]
+    div []
+      [ div [cls "navbar is-primary"]
+          [ div [cls "navbar-item"]
+              [p [cls "is-size-4 has-text-white"] [text "Todo List"]] ]
+      ; section [cls "hero"]
+          [ div [cls "panel-block"] [add_item]
+          ; div [] (model.todos |> List.map item) ] ]
     |> scaffold
 end
