@@ -54,10 +54,10 @@ module Effetcs = struct
     Lwt_io.printf "%s\n>>> " text >>= fun _ -> Lwt_io.read_line Lwt_io.stdin
 end
 
-open Lwt
+(* open Lwt *)
 
 let () =
-  let cur_model = ref Component.init_model in
+  (* let cur_model = ref Component.init_model in
   let rec loop msg : unit Lwt.t =
     let model2, cmds = Component.update !cur_model msg in
     cur_model := model2 ;
@@ -67,5 +67,5 @@ let () =
            | Component.DowloadString (url, next) ->
                Effetcs.load_url url >>= (next >> loop)
            | Component.Repl (text, next) -> Effetcs.repl text >>= (next >> loop))
-    |> Lwt.all |> Lwt.map ignore in
-  [loop Component.Init; Server.run] |> Lwt.all |> Lwt_main.run |> ignore
+    |> Lwt.all |> Lwt.map ignore in *)
+  [(* loop Component.Init; *) Server.run] |> Lwt.all |> Lwt_main.run |> ignore
