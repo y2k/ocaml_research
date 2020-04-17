@@ -1,11 +1,10 @@
 module Domain = struct
   let toCommand text =
-    let find key xs =
-      xs |> List.assoc_opt key |> Option.map (fun x -> List.hd x) in
+    let find key xs = xs |> List.assoc_opt key |> Option.map List.hd in
     let parts = Uri.query_of_encoded text in
-    parts |> find "id"
+    find "id" parts
     |> Fun.flip Option.bind (fun id ->
-           parts |> find "value" |> Option.map (fun value -> (id, value)))
+           find "value" parts |> Option.map (fun value -> (id, value)))
     |> Option.fold ~none:("", "") ~some:Fun.id
 
   let remove xs v = xs |> List.filter (fun x -> x <> v)
