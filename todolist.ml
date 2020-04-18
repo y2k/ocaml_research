@@ -16,15 +16,19 @@ module Update = struct
   let init = ({todos= []}, [])
 
   type msg = ServerUpdate of string
+
   type cmd = TODO
 
   let update model msg =
     match msg with
     | ServerUpdate body -> (
       match Domain.toCommand body with
-      | "enter_text", value -> ({todos= value :: model.todos}, [])
-      | "delete", value -> ({todos= Domain.remove model.todos value}, [])
-      | _ -> (model, []) )
+      | "enter_text", value ->
+          ({todos= value :: model.todos}, [])
+      | "delete", value ->
+          ({todos= Domain.remove model.todos value}, [])
+      | _ ->
+          (model, []) )
 end
 
 module View = struct
@@ -43,7 +47,9 @@ module View = struct
       [ p
           [cls "control"; ("style", "flex: 1")]
           [ input
-              [ cls "input"; ("type", "text"); ("placeholder", "Enter item")
+              [ cls "input"
+              ; ("type", "text")
+              ; ("placeholder", "Enter item")
               ; ("name", "value") ]
               [] ]
       ; p [cls "control"]

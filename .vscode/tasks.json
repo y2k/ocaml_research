@@ -2,13 +2,21 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "run",
+            "type": "shell",
+            "command": "./_build/default/main.exe",
+            "dependsOn": "build",
+            "problemMatcher": []
+        },
+        {
             "label": "build",
             "type": "shell",
             "command": "dune build",
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": []
         }
     ]
 }
