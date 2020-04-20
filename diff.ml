@@ -8,7 +8,9 @@ type diff_action =
 
 type node = Dsl.node
 
-module ListExt = struct
+module List = struct
+  include List
+
   let zip xs ys =
     let count = max (List.length xs) (List.length ys) in
     List.init count (fun i -> (List.nth_opt xs i, List.nth_opt ys i))
@@ -37,9 +39,9 @@ let remove_old_props (prev : node) (current : node) (id : complex_id) =
              [])
   |> List.concat
 
-let rec compute_childred (prevs : node list) (currents : node list)
+let rec compute_diff (prevs : node list) (currents : node list)
     (parent_id : complex_id) =
-  ListExt.zip prevs currents
+  List.zip prevs currents
   |> List.mapi (fun i x ->
          match x with
          | Some _, None ->
@@ -47,17 +49,17 @@ let rec compute_childred (prevs : node list) (currents : node list)
          | None, Some (current : node) ->
              [AddNode (parent_id, i :: parent_id, current.tag)]
              @ set_new_props [] current (i :: parent_id)
-             @ compute_childred [] current.children parent_id
+             @ compute_diff [] current.children (i :: parent_id)
          | Some (prev : node), Some (current : node) ->
              if prev.tag = current.tag then
                set_new_props prev.props current (i :: parent_id)
                @ remove_old_props prev current (i :: parent_id)
-               @ compute_childred prev.children current.children parent_id
+               @ compute_diff prev.children current.children (i :: parent_id)
              else
                [ RemoveNode (i :: parent_id)
                ; AddNode (parent_id, i :: parent_id, current.tag) ]
                @ set_new_props [] current (i :: parent_id)
-               @ compute_childred [] current.children parent_id
+               @ compute_diff [] current.children (i :: parent_id)
          | _ ->
              failwith "illegal state")
   |> List.concat

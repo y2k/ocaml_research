@@ -1,9 +1,113 @@
+module ListEx = struct
+  let reduce f empty xs =
+    match xs with
+    | [x] ->
+        x
+    | x :: xs ->
+        xs |> List.fold_left f x
+    | [] ->
+        empty ()
+end
+
+module Application = struct
+  open Dsl
+  open Diff
+  open Printf
+
+  let prev_state : node list ref = ref []
+
+  let render_dynamic model =
+    let v = Material.View.viewContent model in
+    let prev = !prev_state in
+    prev_state := [v] ;
+    Diff.compute_diff prev [v] []
+
+  let render_string model =
+    let id_to_string complex_id =
+      complex_id |> List.map string_of_int
+      |> ListEx.reduce (sprintf "%s-%s") (fun _ -> "")
+    in
+    render_dynamic model
+    |> List.map (function
+         | AddNode (parent_id, id, name) ->
+             sprintf
+               {|{ "tag" : "add-node", "parent_id": "%s", "id" : "%s", "name" : "%s"}|}
+               (id_to_string parent_id) (id_to_string id) name
+         | RemoveNode id ->
+             sprintf {|{ "tag" : "remove-node", "id" : "%s" }|}
+               (id_to_string id)
+         | SetProp (id, key, value) ->
+             sprintf
+               {|{ "tag" : "set-prop", "id" : "%s", "name" : "%s", "value" : "%s"}|}
+               (id_to_string id) key value
+         | RemoveProp (id, key) ->
+             sprintf {|{ "tag" : "remove-prop", "id" : "%s", "name" : "%s"}|}
+               (id_to_string id) key)
+    |> ListEx.reduce (Printf.sprintf "%s, %s") (fun _ -> "")
+    |> sprintf "[ %s ]"
+
+  let render_static =
+    html []
+      [ head []
+          [ link
+              [ ("rel", "stylesheet")
+              ; ( "href"
+                , "https://unpkg.com/material-components-web@v4.0.0/dist/material-components-web.min.css"
+                ) ]
+          ; link
+              [ ("rel", "stylesheet")
+              ; ( "href"
+                , "https://fonts.googleapis.com/icon?family=Material+Icons" ) ]
+          ; script
+              [ ( "src"
+                , "https://unpkg.com/material-components-web@v4.0.0/dist/material-components-web.min.js"
+                ) ]
+              [] ]
+      ; body []
+          [ div [("id", "container")] []
+          ; script []
+              [ text
+                  {|
+                    (function() {
+                      const ws = new WebSocket('ws://localhost:8081/');
+                      ws.onmessage = function(msg) {
+                        const cmds = JSON.parse(msg.data);
+                        for (cmd of cmds) {
+                          switch (cmd.tag) {
+                            case "add-node":
+                              if (cmd.name != "") {
+                                const node = document.createElement(cmd.name);
+                                node.id = cmd.id;
+                                document.getElementById(cmd.parent_id || "container").appendChild(node);
+                              }
+                              break;
+                            case "remove-node":
+                              document.getElementById(cmd.id).remove();
+                              break;
+                            case "set-prop":
+                              if (cmd.name == "") {
+                                document.getElementById(cmd.id.substring(2) || "container").innerText = cmd.value;
+                              } else {
+                                document.getElementById(cmd.id).setAttribute(cmd.name, cmd.value)
+                              }
+                              break;
+                            case "remove-prop":
+                              document.getElementById(cmd.id).removeAttribute(cmd.name)
+                              break;
+                          }
+                        }
+                      };
+                    })();
+                  |}
+              ] ] ]
+end
+
 module Websocket_client = struct
   open Lwt.Infix
   open Websocket
   open Websocket_lwt_unix
 
-  let section = Lwt_log.Section.make "reynir"
+  let section = Lwt_log.Section.make "websocket"
 
   let handler id client =
     incr id ;
@@ -11,8 +115,15 @@ module Websocket_client = struct
     let send = Connected_client.send client in
     Lwt_log.ign_info_f ~section "New connection (id = %d)" id ;
     Lwt.async (fun () ->
+        send @@ Frame.create ~content:(Application.render_string 0) ()
+        >>= fun _ ->
         Lwt_unix.sleep 1.0
-        >>= fun () -> send @@ Frame.create ~content:"Delayed message" ()) ;
+        >>= fun _ ->
+        send @@ Frame.create ~content:(Application.render_string 1) ()
+        >>= fun _ ->
+        Lwt_unix.sleep 1.0
+        >>= fun _ ->
+        send @@ Frame.create ~content:(Application.render_string 2) ()) ;
     let rec recv_forever () =
       let open Frame in
       let react fr =
@@ -35,7 +146,7 @@ module Websocket_client = struct
         | Opcode.Pong ->
             Lwt.return_unit
         | Opcode.Text | Opcode.Binary ->
-            send @@ Frame.create ~content:"OK" ()
+            send @@ Frame.create ~content:(Application.render_string 0) ()
         | _ ->
             send @@ Frame.close 1002 >>= fun () -> Lwt.fail Exit
       in
@@ -64,17 +175,13 @@ module Screen = Material
 
 let shared_state = ref (fst Screen.Update.init)
 
-let render form =
-  let new_state, _ =
-    Screen.Update.update !shared_state (Screen.Update.ServerUpdate form)
-  in
-  shared_state := new_state ;
-  Screen.View.view new_state |> Dsl.render
+let render _form = Application.render_static |> Dsl.render
 
 let () =
   let callback _conn _req body =
     Body.to_string body
     >>= fun form -> Server.respond_string ~status:`OK ~body:(render form) ()
   in
-  Server.create ~mode:(`TCP (`Port 8080)) (Server.make ~callback ())
-  |> Lwt_main.run
+  [ Server.create ~mode:(`TCP (`Port 8080)) (Server.make ~callback ())
+  ; Websocket_client.start ]
+  |> Lwt.all |> Lwt.map ignore |> Lwt_main.run

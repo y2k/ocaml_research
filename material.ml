@@ -40,13 +40,13 @@ module View = struct
           [div [] [h3 [cls "mdc-typography mdc-typography--body2"] [text title]]]
       ; div [cls "mdc-card__action-icons"] [actionButton "delete"] ]
 
-  let viewContent =
+  let viewContent (model : int) =
     div
       [("style", "display: flex; flex-direction: column")]
       [ textField "todo text"
       ; viewButton "create"
-      ; viewCart "Item #1"
-      ; viewCart "Item #2" ]
+      ; (if model <> 1 then viewCart "Item #1" else div [] [])
+      ; viewCart ("Item #2 - " ^ string_of_int model) ]
 
   let view (_model : Update.model) =
     html []
@@ -66,7 +66,7 @@ module View = struct
                 ) ]
               [] ]
       ; body []
-          [ viewContent
+          [ viewContent 0
           ; script []
               [ text
                   "mdc.ripple.MDCRipple.attachTo(document.querySelector('.mdc-button')); \
