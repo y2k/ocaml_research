@@ -10,14 +10,13 @@ module ListEx = struct
 end
 
 module Application = struct
-  open Dsl
   open Diff
   open Printf
 
   let prev_state : node list ref = ref []
 
   let render_dynamic model =
-    let v = Material.View.viewContent model in
+    let v = Material.View.view model in
     let prev = !prev_state in
     prev_state := [v] ;
     Diff.compute_diff prev [v] []
@@ -45,61 +44,6 @@ module Application = struct
                (id_to_string id) key)
     |> ListEx.reduce (Printf.sprintf "%s, %s") (fun _ -> "")
     |> sprintf "[ %s ]"
-
-  let render_static =
-    html []
-      [ head []
-          [ link
-              [ ("rel", "stylesheet")
-              ; ( "href"
-                , "https://unpkg.com/material-components-web@v4.0.0/dist/material-components-web.min.css"
-                ) ]
-          ; link
-              [ ("rel", "stylesheet")
-              ; ( "href"
-                , "https://fonts.googleapis.com/icon?family=Material+Icons" ) ]
-          ; script
-              [ ( "src"
-                , "https://unpkg.com/material-components-web@v4.0.0/dist/material-components-web.min.js"
-                ) ]
-              [] ]
-      ; body []
-          [ div [("id", "container")] []
-          ; script []
-              [ text
-                  {|
-                    (function() {
-                      remote_ui_ws = new WebSocket('ws://localhost:8081/');
-                      remote_ui_ws.onmessage = function(msg) {
-                        const cmds = JSON.parse(msg.data);
-                        for (cmd of cmds) {
-                          switch (cmd.tag) {
-                            case "add-node":
-                              if (cmd.name != "") {
-                                const node = document.createElement(cmd.name);
-                                node.id = cmd.id;
-                                document.getElementById(cmd.parent_id || "container").appendChild(node);
-                              }
-                              break;
-                            case "remove-node":
-                              document.getElementById(cmd.id).remove();
-                              break;
-                            case "set-prop":
-                              if (cmd.name == "") {
-                                document.getElementById(cmd.id.substring(2) || "container").innerText = cmd.value;
-                              } else {
-                                document.getElementById(cmd.id).setAttribute(cmd.name, cmd.value)
-                              }
-                              break;
-                            case "remove-prop":
-                              document.getElementById(cmd.id).removeAttribute(cmd.name)
-                              break;
-                          }
-                        }
-                      };
-                    })();
-                  |}
-              ] ] ]
 end
 
 module Websocket_client = struct
@@ -149,7 +93,7 @@ module Websocket_client = struct
             let result = update_and_render fr.content in
             send @@ Frame.create ~content:result ()
         | Opcode.Binary ->
-            send @@ Frame.create ~content:(Application.render_string 0) ()
+            send @@ Frame.create ~content:"[]" ()
         | _ ->
             send @@ Frame.close 1002 >>= fun () -> Lwt.fail Exit
       in
@@ -178,7 +122,7 @@ module Screen = Material
 
 let shared_state = ref (fst Screen.Update.init)
 
-let render _form = Application.render_static |> Dsl.render
+let render _form = Material.View.render_static |> Dsl.render
 
 let () =
   let callback _conn _req body =
