@@ -69,8 +69,8 @@ module Application = struct
               [ text
                   {|
                     (function() {
-                      const ws = new WebSocket('ws://localhost:8081/');
-                      ws.onmessage = function(msg) {
+                      remote_ui_ws = new WebSocket('ws://localhost:8081/');
+                      remote_ui_ws.onmessage = function(msg) {
                         const cmds = JSON.parse(msg.data);
                         for (cmd of cmds) {
                           switch (cmd.tag) {
@@ -109,21 +109,21 @@ module Websocket_client = struct
 
   let section = Lwt_log.Section.make "websocket"
 
+  let model = ref @@ fst Material.Update.init
+
+  let render_view () = Application.render_string !model
+
+  let update_and_render (msg : string) =
+    model :=
+      fst @@ Material.Update.update !model (Material.Update.ServerUpdate msg) ;
+    render_view ()
+
   let handler id client =
     incr id ;
     let id = !id in
     let send = Connected_client.send client in
     Lwt_log.ign_info_f ~section "New connection (id = %d)" id ;
-    Lwt.async (fun () ->
-        send @@ Frame.create ~content:(Application.render_string 0) ()
-        >>= fun _ ->
-        Lwt_unix.sleep 1.0
-        >>= fun _ ->
-        send @@ Frame.create ~content:(Application.render_string 1) ()
-        >>= fun _ ->
-        Lwt_unix.sleep 1.0
-        >>= fun _ ->
-        send @@ Frame.create ~content:(Application.render_string 2) ()) ;
+    Lwt.async (fun () -> send @@ Frame.create ~content:(render_view ()) ()) ;
     let rec recv_forever () =
       let open Frame in
       let react fr =
@@ -145,7 +145,10 @@ module Websocket_client = struct
             >>= fun () -> Lwt.fail Exit
         | Opcode.Pong ->
             Lwt.return_unit
-        | Opcode.Text | Opcode.Binary ->
+        | Opcode.Text ->
+            let result = update_and_render fr.content in
+            send @@ Frame.create ~content:result ()
+        | Opcode.Binary ->
             send @@ Frame.create ~content:(Application.render_string 0) ()
         | _ ->
             send @@ Frame.close 1002 >>= fun () -> Lwt.fail Exit

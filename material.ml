@@ -1,18 +1,20 @@
 module Update = struct
-  type model = unit
+  type model = int
 
   type msg = ServerUpdate of string
 
-  let init = ((), [])
+  let init = (0, [])
 
-  let update model _msg = (model, [])
+  let update model msg =
+    match msg with ServerUpdate "create" -> (model + 1, []) | _ -> (model, [])
 end
 
 module View = struct
   open Dsl
 
   let viewButton title =
-    button [cls "mdc-button"]
+    button
+      [cls "mdc-button"; ("onclick", "remote_ui_ws.send('create')")]
       [ div [cls "mdc-button__ripple"] []
       ; span [cls "mdc-button__label"] [text title] ]
 
@@ -40,11 +42,11 @@ module View = struct
           [div [] [h3 [cls "mdc-typography mdc-typography--body2"] [text title]]]
       ; div [cls "mdc-card__action-icons"] [actionButton "delete"] ]
 
-  let viewContent (model : int) =
+  let viewContent (model : Update.model) =
     div
       [("style", "display: flex; flex-direction: column")]
       [ textField "todo text"
-      ; viewButton "create"
+      ; viewButton @@ Printf.sprintf "create (%i)" model
       ; (if model <> 1 then viewCart "Item #1" else div [] [])
       ; viewCart ("Item #2 - " ^ string_of_int model) ]
 
