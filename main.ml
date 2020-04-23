@@ -125,10 +125,12 @@ let shared_state = ref (fst Screen.Update.init)
 let render _form = Material.View.render_static |> Dsl.render
 
 let () =
-  let callback _conn _req body =
-    Body.to_string body
-    >>= fun form -> Server.respond_string ~status:`OK ~body:(render form) ()
-  in
-  [ Server.create ~mode:(`TCP (`Port 8080)) (Server.make ~callback ())
-  ; Websocket_client.start ]
-  |> Lwt.all |> Lwt.map ignore |> Lwt_main.run
+  if true then Remote.Example.show_toast () |> Lwt_main.run
+  else
+    let callback _conn _req body =
+      Body.to_string body
+      >>= fun form -> Server.respond_string ~status:`OK ~body:(render form) ()
+    in
+    [ Server.create ~mode:(`TCP (`Port 8080)) (Server.make ~callback ())
+    ; Websocket_client.start ]
+    |> Lwt.all |> Lwt.map ignore |> Lwt_main.run
