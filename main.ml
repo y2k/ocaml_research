@@ -125,7 +125,7 @@ let shared_state = ref (fst Screen.Update.init)
 let render _form = Material.View.render_static |> Dsl.render
 
 let () =
-  if true then Remote.Example.show_toast () |> Lwt_main.run
+  if true then Remote.Example.main () |> Lwt_main.run
   else
     let callback _conn _req body =
       Body.to_string body
