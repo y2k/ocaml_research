@@ -124,13 +124,22 @@ let shared_state = ref (fst Screen.Update.init)
 
 let render _form = Material.View.render_static |> Dsl.render
 
-let () =
-  if true then Remote.Example.main () |> Lwt_main.run
-  else
-    let callback _conn _req body =
+let server_callback _ (req : Request.t) body =
+  print_endline @@ "resource = " ^ req.resource ;
+  match req.resource with
+  | "/" ->
       Body.to_string body
       >>= fun form -> Server.respond_string ~status:`OK ~body:(render form) ()
-    in
-    [ Server.create ~mode:(`TCP (`Port 8080)) (Server.make ~callback ())
+  | "/sw.js" | "/favicon.ico" ->
+      Server.respond_not_found ()
+  | path ->
+      Server.respond_file ~fname:("output" ^ path) ()
+
+let () =
+  if false then Remote.Example.main () |> Lwt_main.run
+  else
+    [ Server.create
+        ~mode:(`TCP (`Port 8080))
+        (Server.make ~callback:server_callback ())
     ; Websocket_client.start ]
     |> Lwt.all |> Lwt.map ignore |> Lwt_main.run

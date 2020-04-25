@@ -25,6 +25,12 @@ module Update = struct
     match msg with
     | ServerUpdate "_create_" ->
         ({items= model.text :: model.items; text= ""; enabled= false}, [])
+    | ServerUpdate "_show_notification_" ->
+        Remote.Example.show_remote_notification () ;
+        (model, [])
+    | ServerUpdate "_show_toast_" ->
+        Remote.Example.show_remote_toast () ;
+        (model, [])
     | ServerUpdate x
       when Str.string_match (Str.regexp {|_delete_\([0-9]+\)|}) x 0 ->
         let index = int_of_string @@ Str.matched_group 1 x in
@@ -63,7 +69,18 @@ module View = struct
           ; h4 [("style", "margin: 8px")]
               [text @@ sprintf "Add item: %s" model.text]
           ; M.button
+              [ ("label", "show notification")
+              ; ("style", "margin: 4px")
+              ; ("raised", "")
+              ; ("onclick", "remote_ui_ws.send('_show_notification_')") ]
+          ; M.button
+              [ ("label", "show toast")
+              ; ("style", "margin: 4px")
+              ; ("raised", "")
+              ; ("onclick", "remote_ui_ws.send('_show_toast_')") ]
+          ; M.button
               [ ("label", sprintf "Add (%i)" (List.length model.items))
+              ; ("style", "margin: 4px")
               ; ("raised", "")
               ; ((if model.enabled then "enabled" else "disabled"), "")
               ; ("onclick", "remote_ui_ws.send('_create_')") ]
@@ -72,7 +89,11 @@ module View = struct
   let render_static =
     html []
       [ head []
-          [ link
+          [ meta
+              [ ("name", "viewport")
+              ; ( "content"
+                , "minimum-scale=1, initial-scale=1, width=device-width" ) ]
+          ; link
               [ ("rel", "stylesheet")
               ; ( "href"
                 , "https://fonts.googleapis.com/css?family=Material+Icons&display=block"
@@ -82,60 +103,14 @@ module View = struct
               ; ( "href"
                 , "https://fonts.googleapis.com/css?family=Roboto:300,400,500"
                 ) ]
-          ; script
-              [ ( "src"
-                , "https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/2.4.3/webcomponents-bundle.js"
-                ) ]
-              []
-          ; script
-              [ ("type", "module")
-              ; ( "src"
-                , "https://mwc-demos.glitch.me/node_modules/@material/mwc-button/mwc-button.js"
-                ) ]
-              []
-          ; script
-              [ ("type", "module")
-              ; ( "src"
-                , "https://mwc-demos.glitch.me/node_modules/@material/mwc-icon/mwc-icon.js"
-                ) ]
-              []
-          ; script
-              [ ("type", "module")
-              ; ( "src"
-                , "https://mwc-demos.glitch.me/node_modules/@material/mwc-icon-button/mwc-icon-button.js"
-                ) ]
-              []
-          ; script
-              [ ("type", "module")
-              ; ( "src"
-                , "https://mwc-demos.glitch.me/node_modules/@material/mwc-top-app-bar/mwc-top-app-bar.js"
-                ) ]
-              []
-          ; script
-              [ ("type", "module")
-              ; ( "src"
-                , "https://mwc-demos.glitch.me/node_modules/@material/mwc-list/mwc-list.js"
-                ) ]
-              []
-          ; script
-              [ ("type", "module")
-              ; ( "src"
-                , "https://mwc-demos.glitch.me/node_modules/@material/mwc-list/mwc-list-item.js"
-                ) ]
-              []
-          ; script
-              [ ("type", "module")
-              ; ( "src"
-                , "https://mwc-demos.glitch.me/node_modules/@material/mwc-textfield/mwc-textfield.js"
-                ) ]
-              [] ]
+          ; script [("src", "bundle.js")] [] ]
       ; body [("style", "margin: 0px")]
           [ div [("id", "container")] []
           ; script []
               [ text
                   {|
                          (function() {
-                           remote_ui_ws = new WebSocket('ws://localhost:8081/');
+                           remote_ui_ws = new WebSocket('ws://' + window.location.hostname +':8081/');
                            remote_ui_ws.onmessage = function(msg) {
                              const cmds = JSON.parse(msg.data);
                              for (cmd of cmds) {

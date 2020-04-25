@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "dev": "es-dev-server --node-resolve",
+    "build": "rollup -c"
+  },
+  "dependencies": {
+    "@material/mwc-button": "^0.14.1",
+    "@material/mwc-icon-button": "^0.14.1",
+    "@material/mwc-list": "^0.14.1",
+    "@material/mwc-textfield": "^0.14.1",
+    "@material/mwc-top-app-bar": "^0.14.1",
+    "@webcomponents/webcomponentsjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "es-dev-server": "^1.46.5",
+    "rollup": "^2.7.2"
+  }
+}

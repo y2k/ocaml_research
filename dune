@@ -3,3 +3,5 @@
   (name main)
   (preprocess (pps ppx_let lwt_ppx))
   (libraries str cohttp-lwt-unix cohttp lwt websocket websocket-lwt-unix))
+
+(data_only_dirs node_modules)

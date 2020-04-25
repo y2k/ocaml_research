@@ -282,7 +282,7 @@ module Example = struct
 
   let setImageBitmap (_ : Bitmap.t) : unit = ()
 
-  let show_notificatio (env : RemoteTransaction.env) =
+  let show_notification (env : RemoteTransaction.env) =
     let%lwt icon = OcamlUtils.drawable "ic_notification" in
     let%lwt nb = NotificationBuilder.build env.context "default" in
     let%lwt _ = nb#setContentTitle "Hello" in
@@ -321,5 +321,12 @@ module Example = struct
       return @@ setImageBitmap image_bitmap )
     else return ()
 
-  let main () = RemoteTransaction.run show_notificatio
+  let show_remote_notification () = 
+    RemoteTransaction.run show_notification
+    |> Lwt.ignore_result
+  let show_remote_toast () = 
+    RemoteTransaction.run show_toast
+    |> Lwt.ignore_result
+
+  let main () = RemoteTransaction.run show_notification
 end
