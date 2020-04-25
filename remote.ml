@@ -285,7 +285,7 @@ module Example = struct
   let show_notificatio (env : RemoteTransaction.env) =
     let%lwt icon = OcamlUtils.drawable "ic_notification" in
     let%lwt nb = NotificationBuilder.build env.context "default" in
-    let%lwt _ = nb#setContentTitle "hello" in
+    let%lwt _ = nb#setContentTitle "Hello" in
     let%lwt _ = nb#setContentText "from OCaml" in
     let%lwt _ = nb#setSmallIcon icon in
     let%lwt n = nb#build in
@@ -293,10 +293,10 @@ module Example = struct
     nm#notify 1 n
 
   let show_toast (env : RemoteTransaction.env) =
-    let%lwt toast = Toast.makeText env.context "hello" Toast._LENGTH_SHORT in
+    let%lwt toast = Toast.makeText env.context "Hello" Toast._LENGTH_SHORT in
     toast#show ;%lwt
     let%lwt toast =
-      Toast.makeText env.context "from ocaml" Toast._LENGTH_LONG
+      Toast.makeText env.context "from OCaml" Toast._LENGTH_LONG
     in
     toast#setGravity Gravity._CENTER 0 0 ;%lwt
     toast#show
