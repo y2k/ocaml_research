@@ -69,19 +69,16 @@ let rec render node =
       let chs = List.fold_left (fun a n -> a ^ render n) "" node.children in
       Printf.sprintf "<%s%s>%s</%s>" node.tag ps chs node.tag
 
-let scaffold node =
-  html []
-    [ head []
-        [ title [] [text "OCaml Research"]
-        ; meta [("charset", "utf-8")]
-        ; meta
-            [ ("name", "viewport")
-            ; ( "content"
-              , {|width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no|}
-              ) ]
-        ; link
-            [ ("rel", "stylesheet")
-            ; ( "href"
-              , "https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css" )
-            ] ]
-    ; body [] [node] ]
+module Material = struct
+  let textfield props = {tag= "mwc-textfield"; props; children= []}
+
+  let list_item props children = {tag= "mwc-list-item"; props; children}
+
+  let list props children = {tag= "mwc-list"; props; children}
+
+  let button props = {tag= "mwc-button"; props; children= []}
+
+  let icon_button props = {tag= "mwc-icon-button"; props; children= []}
+
+  let top_app_bar props children = {tag= "mwc-top-app-bar"; props; children}
+end

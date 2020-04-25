@@ -122,7 +122,7 @@ module Screen = Material
 
 let shared_state = ref (fst Screen.Update.init)
 
-let render _form = Material.View.render_static |> Dsl.render
+let render _ = Diff.Renderer.render |> Dsl.render
 
 let server_callback _ (req : Request.t) body =
   print_endline @@ "resource = " ^ req.resource ;

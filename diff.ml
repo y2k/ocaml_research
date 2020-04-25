@@ -63,3 +63,63 @@ let rec compute_diff (prevs : node list) (currents : node list)
          | _ ->
              failwith "illegal state")
   |> List.concat
+
+module Renderer = struct
+  open Dsl
+
+  let render =
+    html []
+      [ head []
+          [ meta
+              [ ("name", "viewport")
+              ; ( "content"
+                , "minimum-scale=1, initial-scale=1, width=device-width" ) ]
+          ; link
+              [ ("rel", "stylesheet")
+              ; ( "href"
+                , "https://fonts.googleapis.com/css?family=Material+Icons&display=block"
+                ) ]
+          ; link
+              [ ("rel", "stylesheet")
+              ; ( "href"
+                , "https://fonts.googleapis.com/css?family=Roboto:300,400,500"
+                ) ]
+          ; script [("src", "bundle.js")] [] ]
+      ; body [("style", "margin: 0px")]
+          [ div [("id", "container")] []
+          ; script []
+              [ text
+                  {|
+                         (function() {
+                           remote_ui_ws = new WebSocket('ws://' + window.location.hostname +':8081/');
+                           remote_ui_ws.onmessage = function(msg) {
+                             const cmds = JSON.parse(msg.data);
+                             for (cmd of cmds) {
+                               switch (cmd.tag) {
+                                 case "add-node":
+                                   if (cmd.name != "") {
+                                     const node = document.createElement(cmd.name);
+                                     node.id = cmd.id;
+                                     document.getElementById(cmd.parent_id || "container").appendChild(node);
+                                   }
+                                   break;
+                                 case "remove-node":
+                                   document.getElementById(cmd.id).remove();
+                                   break;
+                                 case "set-prop":
+                                   if (cmd.name == "") {
+                                     document.getElementById(cmd.id.substring(2) || "container").innerText = cmd.value;
+                                   } else {
+                                     document.getElementById(cmd.id).setAttribute(cmd.name, cmd.value)
+                                   }
+                                   break;
+                                 case "remove-prop":
+                                   document.getElementById(cmd.id).removeAttribute(cmd.name)
+                                   break;
+                               }
+                             }
+                           };
+                         })();
+                       |}
+              ] ] ]
+end
