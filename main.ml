@@ -57,10 +57,9 @@ module Websocket_client = struct
 
   let render_view () = Application.render_string !model
 
-  let update_and_render (msg : string) =
-    let new_model, effects =
-      Material.Update.update !model (Material.Update.ServerUpdate msg)
-    in
+  let update_and_render (msg_text : string) =
+    let msg : Material.Update.msg = Remote.Dispatch.parse msg_text in
+    let new_model, effects = Material.Update.update !model msg in
     model := new_model ;
     Remote.EffectHandler.run_effects effects ;
     render_view ()
@@ -119,11 +118,6 @@ end
 open Lwt
 open Cohttp_lwt
 open Cohttp_lwt_unix
-
-(* module Screen = Todolist *)
-module Screen = Material
-
-let shared_state = ref (fst Screen.Update.init)
 
 let render _ = Diff.Renderer.render |> Dsl.render
 
