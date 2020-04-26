@@ -339,26 +339,9 @@ module EffectHandler = struct
 end
 
 module Dispatch = struct
-  let encode (xs : bytes) =
-    List.init (Bytes.length xs) (fun i ->
-        Printf.sprintf "%02x" @@ int_of_char @@ Bytes.get xs i)
-    |> List.fold_left ( ^ ) ""
+  let wrap_json k x = Printf.sprintf {|remote_ui_ws.send('{\"%s\":%s}')|} k x
 
-  let decode (text : string) : bytes =
-    let scan x = Scanf.sscanf x "%02x" Fun.id in
-    let result = Bytes.create @@ (String.length text / 2) in
-    for i = 0 to (String.length text / 2) - 1 do
-      let s = String.sub text (2 * i) 2 in
-      let a = scan s in
-      Bytes.set result i (char_of_int a)
-    done ;
-    result
-
-  let dispatch msg =
-    let text_msg = encode @@ Marshal.to_bytes msg [] in
-    Printf.sprintf "remote_ui_ws.send('%s')" text_msg
-
-  let parse msg = 
-    let bs = decode msg in
-    Marshal.from_bytes bs 0
+  let parse json_text f =
+    let a = Yojson.Basic.from_string json_text in
+    f a
 end

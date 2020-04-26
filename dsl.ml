@@ -56,6 +56,8 @@ let text value = {tag= ""; props= [("", value)]; children= []}
 
 let title props children = {tag= "title"; props; children}
 
+let value_source = "\"' + this.value + '\""
+
 let rec render node =
   match node.tag with
   | "" ->

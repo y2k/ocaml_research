@@ -8,6 +8,36 @@ module Update = struct
     | Delete of int
     | UpdateText of string
 
+  module Serializer = struct
+    let dispatch msg =
+      let open Remote.Dispatch in
+      match msg with
+      | UpdateText x ->
+          wrap_json "u" x
+      | Delete id ->
+          wrap_json "d" (string_of_int id)
+      | Create ->
+          wrap_json "c" "null"
+      | ShowNotification ->
+          wrap_json "sn" "null"
+      | ShowToast ->
+          wrap_json "st" "null"
+
+    let deserialize = function
+      | `Assoc [("u", `String x)] ->
+          UpdateText x
+      | `Assoc [("d", `Int x)] ->
+          Delete x
+      | `Assoc [("c", `Null)] ->
+          Create
+      | `Assoc [("sn", `Null)] ->
+          ShowNotification
+      | `Assoc [("st", `Null)] ->
+          ShowToast
+      | _ ->
+          failwith "can't parse json"
+  end
+
   let init = ({items= []; text= ""; enabled= false}, [])
 
   let update model msg =
@@ -32,7 +62,7 @@ module View = struct
   open Printf
   open Update
   module M = Dsl.Material
-  module D = Remote.Dispatch
+  module D = Serializer
 
   let viewItem i x =
     M.list_item [("hasmeta", "")]
@@ -60,7 +90,7 @@ module View = struct
           [ M.textfield
               [ ("label", "Enter todo item")
               ; ("value", model.text)
-              ; ("oninput", "remote_ui_ws.send(this.value)") ]
+              ; ("oninput", D.dispatch @@ UpdateText value_source) ]
           ; h4 [("style", "margin: 8px")]
               [text @@ sprintf "Add item: %s" model.text]
           ; viewButton "show notification" (D.dispatch ShowNotification)

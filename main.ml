@@ -29,21 +29,27 @@ module Application = struct
     render_dynamic model
     |> List.map (function
          | AddNode (parent_id, id, name) ->
-             sprintf
-               {|{ "tag" : "add-node", "parent_id": "%s", "id" : "%s", "name" : "%s"}|}
-               (id_to_string parent_id) (id_to_string id) name
+             `Assoc
+               [ ("tag", `String "add-node")
+               ; ("parent_id", `String (id_to_string parent_id))
+               ; ("id", `String (id_to_string id))
+               ; ("name", `String name) ]
          | RemoveNode id ->
-             sprintf {|{ "tag" : "remove-node", "id" : "%s" }|}
-               (id_to_string id)
+             `Assoc
+               [ ("tag", `String "remove-node")
+               ; ("id", `String (id_to_string id)) ]
          | SetProp (id, key, value) ->
-             sprintf
-               {|{ "tag" : "set-prop", "id" : "%s", "name" : "%s", "value" : "%s"}|}
-               (id_to_string id) key value
+             `Assoc
+               [ ("tag", `String "set-prop")
+               ; ("id", `String (id_to_string id))
+               ; ("name", `String key)
+               ; ("value", `String value) ]
          | RemoveProp (id, key) ->
-             sprintf {|{ "tag" : "remove-prop", "id" : "%s", "name" : "%s"}|}
-               (id_to_string id) key)
-    |> ListEx.reduce (Printf.sprintf "%s, %s") (fun _ -> "")
-    |> sprintf "[ %s ]"
+             `Assoc
+               [ ("tag", `String "remove-prop")
+               ; ("id", `String (id_to_string id))
+               ; ("name", `String key) ])
+    |> fun x -> Yojson.to_string (`List x)
 end
 
 module Websocket_client = struct
@@ -58,7 +64,9 @@ module Websocket_client = struct
   let render_view () = Application.render_string !model
 
   let update_and_render (msg_text : string) =
-    let msg : Material.Update.msg = Remote.Dispatch.parse msg_text in
+    let msg : Material.Update.msg =
+      Remote.Dispatch.parse msg_text Material.Update.Serializer.deserialize
+    in
     let new_model, effects = Material.Update.update !model msg in
     model := new_model ;
     Remote.EffectHandler.run_effects effects ;
