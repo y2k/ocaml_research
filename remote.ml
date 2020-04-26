@@ -282,11 +282,11 @@ module Example = struct
 
   let setImageBitmap (_ : Bitmap.t) : unit = ()
 
-  let show_notification (env : RemoteTransaction.env) =
+  let show_notification text (env : RemoteTransaction.env) =
     let%lwt icon = OcamlUtils.drawable "ic_notification" in
     let%lwt nb = NotificationBuilder.build env.context "default" in
-    let%lwt _ = nb#setContentTitle "Hello" in
-    let%lwt _ = nb#setContentText "from OCaml" in
+    let%lwt _ = nb#setContentTitle "OCaml remote" in
+    let%lwt _ = nb#setContentText text in
     let%lwt _ = nb#setSmallIcon icon in
     let%lwt n = nb#build in
     let%lwt nm = NotificationManager.from env.context in
@@ -320,13 +320,20 @@ module Example = struct
       Printf.printf "size = %i x %i" width height |> ignore ;
       return @@ setImageBitmap image_bitmap )
     else return ()
+end
 
-  let show_remote_notification () = 
-    RemoteTransaction.run show_notification
-    |> Lwt.ignore_result
-  let show_remote_toast () = 
-    RemoteTransaction.run show_toast
-    |> Lwt.ignore_result
+module EffectHandler = struct
+  let run_effect = function
+    | `ShowNotification msg ->
+        RemoteTransaction.run (Example.show_notification msg)
+        |> Lwt.ignore_result
+    | `ShowToast msg ->
+        RemoteTransaction.run (fun env ->
+            let%lwt toast =
+              Toast.makeText env.context msg Toast._LENGTH_SHORT
+            in
+            toast#show)
+        |> Lwt.ignore_result
 
-  let main () = RemoteTransaction.run show_notification
+  let run_effects effects = effects |> List.iter run_effect
 end

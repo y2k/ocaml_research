@@ -10,11 +10,9 @@ module Update = struct
     | ServerUpdate "_create_" ->
         ({items= model.text :: model.items; text= ""; enabled= false}, [])
     | ServerUpdate "_show_notification_" ->
-        Remote.Example.show_remote_notification () ;
-        (model, [])
+        (model, [`ShowNotification "hello from OCaml"])
     | ServerUpdate "_show_toast_" ->
-        Remote.Example.show_remote_toast () ;
-        (model, [])
+        (model, [`ShowToast "hello from OCaml"])
     | ServerUpdate x
       when Str.string_match (Str.regexp {|_delete_\([0-9]+\)|}) x 0 ->
         let index = int_of_string @@ Str.matched_group 1 x in

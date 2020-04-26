@@ -58,8 +58,11 @@ module Websocket_client = struct
   let render_view () = Application.render_string !model
 
   let update_and_render (msg : string) =
-    model :=
-      fst @@ Material.Update.update !model (Material.Update.ServerUpdate msg) ;
+    let new_model, effects =
+      Material.Update.update !model (Material.Update.ServerUpdate msg)
+    in
+    model := new_model ;
+    Remote.EffectHandler.run_effects effects ;
     render_view ()
 
   let handler id client =
@@ -136,10 +139,8 @@ let server_callback _ (req : Request.t) body =
       Server.respond_file ~fname:("output" ^ path) ()
 
 let () =
-  if false then Remote.Example.main () |> Lwt_main.run
-  else
-    [ Server.create
-        ~mode:(`TCP (`Port 8080))
-        (Server.make ~callback:server_callback ())
-    ; Websocket_client.start ]
-    |> Lwt.all |> Lwt.map ignore |> Lwt_main.run
+  [ Server.create
+      ~mode:(`TCP (`Port 8080))
+      (Server.make ~callback:server_callback ())
+  ; Websocket_client.start ]
+  |> Lwt.all |> Lwt.map ignore |> Lwt_main.run
