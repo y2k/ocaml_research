@@ -9,19 +9,17 @@ module Update = struct
     | UpdateText of string
 
   module Serializer = struct
-    let dispatch msg =
-      let open Remote.Dispatch in
-      match msg with
+    let serialize = function
       | UpdateText x ->
-          wrap_json "u" x
+          `Assoc [("u", `String x)]
       | Delete id ->
-          wrap_json "d" (string_of_int id)
+          `Assoc [("d", `Int id)]
       | Create ->
-          wrap_json "c" "null"
+          `Assoc [("c", `Null)]
       | ShowNotification ->
-          wrap_json "sn" "null"
+          `Assoc [("sn", `Null)]
       | ShowToast ->
-          wrap_json "st" "null"
+          `Assoc [("st", `Null)]
 
     let deserialize = function
       | `Assoc [("u", `String x)] ->
@@ -62,15 +60,14 @@ module View = struct
   open Printf
   open Update
   module M = Dsl.Material
-  module D = Serializer
 
-  let viewItem i x =
+  let viewItem dispatch i x =
     M.list_item [("hasmeta", "")]
       [ span [] [text @@ sprintf "Item #%s" x]
       ; span
           [ ("slot", "meta")
           ; cls "material-icons"
-          ; ("onclick", D.dispatch @@ Delete i) ]
+          ; ("onclick", dispatch @@ Delete i) ]
           [text "delete"] ]
 
   let viewButton ?(enabled = true) title onclick =
@@ -81,22 +78,18 @@ module View = struct
       ; ((if enabled then "enabled" else "disabled"), "")
       ; ("onclick", onclick) ]
 
-  let view (model : Update.model) =
-    M.top_app_bar []
-      [ M.icon_button [("icon", "menu"); ("slot", "navigationIcon")]
-      ; div [("slot", "title")] [text "Todo List"]
-      ; div
-          [("style", "display: flex; flex-direction: column")]
-          [ M.textfield
-              [ ("label", "Enter todo item")
-              ; ("value", model.text)
-              ; ("oninput", D.dispatch @@ UpdateText value_source) ]
-          ; h4 [("style", "margin: 8px")]
-              [text @@ sprintf "Add item: %s" model.text]
-          ; viewButton "show notification" (D.dispatch ShowNotification)
-          ; viewButton "show toast" (D.dispatch ShowToast)
-          ; viewButton ~enabled:model.enabled
-              (sprintf "Add (%i)" (List.length model.items))
-              (D.dispatch Create)
-          ; M.list [] (model.items |> List.mapi viewItem) ] ]
+  let view (model : Update.model) dispatch =
+    div
+      [("style", "display: flex; flex-direction: column")]
+      [ M.textfield
+          [ ("label", "Enter todo item")
+          ; ("value", model.text)
+          ; ("oninput", dispatch @@ UpdateText value_source) ]
+      ; h4 [("style", "margin: 8px")] [text @@ sprintf "Add item: %s" model.text]
+      ; viewButton "show notification" (dispatch ShowNotification)
+      ; viewButton "show toast" (dispatch ShowToast)
+      ; viewButton ~enabled:model.enabled
+          (sprintf "Add (%i)" (List.length model.items))
+          (dispatch Create)
+      ; M.list [] (model.items |> List.mapi (viewItem dispatch)) ]
 end

@@ -339,9 +339,13 @@ module EffectHandler = struct
 end
 
 module Dispatch = struct
-  let wrap_json k x = Printf.sprintf {|remote_ui_ws.send('{\"%s\":%s}')|} k x
+  let json_to_websocket_msg json =
+    let replace input output =
+      Str.global_replace (Str.regexp_string input) output
+    in
+    Yojson.Basic.to_string json
+    |> replace Dsl.value_source "' + this.value + '"
+    |> Printf.sprintf {|remote_ui_ws.send('%s')|}
 
-  let parse json_text f =
-    let a = Yojson.Basic.from_string json_text in
-    f a
+  let parse json_text f = f (Yojson.Basic.from_string json_text)
 end

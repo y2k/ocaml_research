@@ -9,14 +9,19 @@ module ListEx = struct
         empty ()
 end
 
+module M = Navigation
+
 module Application = struct
   open Diff
   open Printf
 
   let prev_state : node list ref = ref []
 
+  let dispatch (msg : M.Update.msg) : string =
+    M.Update.Serializer.serialize msg |> Remote.Dispatch.json_to_websocket_msg
+
   let render_dynamic model =
-    let v = Material.View.view model in
+    let v = M.View.view model dispatch in
     let prev = !prev_state in
     prev_state := [v] ;
     Diff.compute_diff prev [v] []
@@ -59,15 +64,15 @@ module Websocket_client = struct
 
   let section = Lwt_log.Section.make "websocket"
 
-  let model = ref @@ fst Material.Update.init
+  let model = ref @@ fst M.Update.init
 
   let render_view () = Application.render_string !model
 
   let update_and_render (msg_text : string) =
-    let msg : Material.Update.msg =
-      Remote.Dispatch.parse msg_text Material.Update.Serializer.deserialize
+    let msg : M.Update.msg =
+      Remote.Dispatch.parse msg_text M.Update.Serializer.deserialize
     in
-    let new_model, effects = Material.Update.update !model msg in
+    let new_model, effects = M.Update.update !model msg in
     model := new_model ;
     Remote.EffectHandler.run_effects effects ;
     render_view ()
