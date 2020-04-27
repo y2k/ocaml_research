@@ -123,3 +123,11 @@ module Renderer = struct
                        |}
               ] ] ]
 end
+
+module LazyView = struct
+  open Dsl
+
+  let view (model : 'a) (view : 'a -> node) : node =
+    let ln = {f= Marshal.to_bytes model []; view= (fun _ -> view model)} in
+    {tag= "__LAZY__"; props= []; children= []; lazyNode= Some ln}
+end

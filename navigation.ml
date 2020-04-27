@@ -35,7 +35,11 @@ module View = struct
   module M = Dsl.Material
 
   let view_context model dispatch =
-    match model with Main sm -> Main_screen.View.view sm dispatch
+    match model with
+    | Main sm ->
+        Diff.LazyView.view sm (fun sm -> Main_screen.View.view sm dispatch)
+
+  (* Main_screen.View.view sm dispatch *)
 
   let view (model : Update.model) dispatch =
     M.top_app_bar []
