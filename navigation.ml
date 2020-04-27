@@ -34,12 +34,14 @@ module View = struct
   open Update
   module M = Dsl.Material
 
-  let view_context model dispatch =
-    match model with Main sm -> Main_screen.View.view sm dispatch
+  let view_content model dispatch =
+    match model with
+    | Main sub_model ->
+        Diff.LazyView.view sub_model (Main_screen.View.view dispatch)
 
   let view (model : Update.model) dispatch =
     M.top_app_bar []
       [ M.icon_button [("icon", "menu"); ("slot", "navigationIcon")]
       ; div [("slot", "title")] [text "OCaml remote research"]
-      ; view_context model.current (fun x -> MainMsg x |> dispatch) ]
+      ; view_content model.current (fun x -> MainMsg x |> dispatch) ]
 end

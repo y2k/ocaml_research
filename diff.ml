@@ -41,25 +41,56 @@ let remove_old_props (prev : node) (current : node) (id : complex_id) =
 
 let rec compute_diff (prevs : node list) (currents : node list)
     (parent_id : complex_id) =
+  let update_node (prev : node) (current : node) i parent_id =
+    if prev.tag = current.tag then
+      set_new_props prev.props current (i :: parent_id)
+      @ remove_old_props prev current (i :: parent_id)
+      @ compute_diff prev.children current.children (i :: parent_id)
+    else
+      [ RemoveNode (i :: parent_id)
+      ; AddNode (parent_id, i :: parent_id, current.tag) ]
+      @ set_new_props [] current (i :: parent_id)
+      @ compute_diff [] current.children (i :: parent_id)
+  in
   List.zip prevs currents
   |> List.mapi (fun i x ->
          match x with
          | Some _, None ->
              [RemoveNode (i :: parent_id)]
-         | None, Some (current : node) ->
-             [AddNode (parent_id, i :: parent_id, current.tag)]
-             @ set_new_props [] current (i :: parent_id)
-             @ compute_diff [] current.children (i :: parent_id)
-         | Some (prev : node), Some (current : node) ->
-             if prev.tag = current.tag then
-               set_new_props prev.props current (i :: parent_id)
-               @ remove_old_props prev current (i :: parent_id)
-               @ compute_diff prev.children current.children (i :: parent_id)
-             else
-               [ RemoveNode (i :: parent_id)
-               ; AddNode (parent_id, i :: parent_id, current.tag) ]
+         | None, Some (current : node) -> (
+           match current.lazyNode with
+           | Some lazy_node ->
+               let current = Lazy.force lazy_node.view in
+               [AddNode (parent_id, i :: parent_id, current.tag)]
                @ set_new_props [] current (i :: parent_id)
                @ compute_diff [] current.children (i :: parent_id)
+           | None ->
+               [AddNode (parent_id, i :: parent_id, current.tag)]
+               @ set_new_props [] current (i :: parent_id)
+               @ compute_diff [] current.children (i :: parent_id) )
+         | Some (prev : node), Some (current : node) -> (
+           match current.lazyNode with
+           | Some current_lazy -> (
+             match prev.lazyNode with
+             | Some prev_lazy ->
+                 if current_lazy.token = prev_lazy.token then []
+                 else
+                   let current = Lazy.force current_lazy.view in
+                   let prev = Lazy.force prev_lazy.view in
+                   update_node prev current i parent_id
+             | None ->
+                 let current = Lazy.force current_lazy.view in
+                 [ RemoveNode (i :: parent_id)
+                 ; AddNode (parent_id, i :: parent_id, current.tag) ]
+                 @ set_new_props [] current (i :: parent_id)
+                 @ compute_diff [] current.children (i :: parent_id) )
+           | None -> (
+             match prev.lazyNode with
+             | Some prev_lazy ->
+                 let prev = Lazy.force prev_lazy.view in
+                 update_node prev current i parent_id
+             | None ->
+                 update_node prev current i parent_id ) )
          | _ ->
              failwith "illegal state")
   |> List.concat
@@ -122,4 +153,12 @@ module Renderer = struct
                          })();
                        |}
               ] ] ]
+end
+
+module LazyView = struct
+  open Dsl
+
+  let view (model : 'a) (view : 'a -> node) : node =
+    let ln = {token= Marshal.to_bytes model []; view= lazy (view model)} in
+    {tag= "__LAZY__"; props= []; children= []; lazyNode= Some ln}
 end
