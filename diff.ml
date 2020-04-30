@@ -159,10 +159,6 @@ module LazyView = struct
   open Dsl
 
   let view (model : 'a) (view : 'a -> node) : node =
-<<<<<<< HEAD
-    let ln = {f= Marshal.to_bytes model []; view= (fun _ -> view model)} in
-=======
     let ln = {token= Marshal.to_bytes model []; view= lazy (view model)} in
->>>>>>> master
     {tag= "__LAZY__"; props= []; children= []; lazyNode= Some ln}
 end
