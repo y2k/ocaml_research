@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 type lazyNode = {f: bytes; view: unit -> node}
+=======
+type lazyNode = {token: bytes; view: node Lazy.t}
+>>>>>>> master
 
 and node =
   { tag: string

@@ -78,7 +78,7 @@ module View = struct
       ; ((if enabled then "enabled" else "disabled"), "")
       ; ("onclick", onclick) ]
 
-  let view (model : Update.model) dispatch =
+  let view dispatch (model : Update.model) =
     div
       [("style", "display: flex; flex-direction: column")]
       [ M.textfield
