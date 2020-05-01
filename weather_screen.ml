@@ -28,10 +28,12 @@ let update (dispatch : msg -> unit) model msg =
   | CityChanged city ->
       ({model with city}, [])
   | LoadTemperature ->
+      let token = Sys.getenv "OPEN_WEATHER_API" in
       ( {model with error= false}
       , [ download
             (Printf.sprintf
-               "https://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&lang=en"
+               "https://api.openweathermap.org/data/2.5/weather?appid=%s&q=%s&units=metric&lang=en"
+               token
                model.city)
             deserialize
             (loadTemperatureEnd >> dispatch) ] )
@@ -46,11 +48,11 @@ module M = Dsl.Material
 let view_temp model =
   match model.temp with
   | Some temp ->
-      span [] [text @@ Printf.sprintf "%g C" temp]
+      h1 [("style", "align-self: center")] [text @@ Printf.sprintf "%g C" temp]
   | None ->
       div [] []
 
-let view dispatch model  =
+let view dispatch model =
   div
     [("style", "display: flex; flex-direction: column")]
     [ M.textfield
@@ -63,4 +65,7 @@ let view dispatch model  =
         ; ("raised", "")
         ; ("onclick", dispatch LoadTemperature) ]
     ; view_temp model
-    ; M.snackbar [("open", string_of_bool model.error)] [] ]
+    ; M.snackbar
+        [ ("open", string_of_bool model.error)
+        ; ("labelText", "Error, try again later") ]
+        [] ]

@@ -68,14 +68,20 @@ module Websocket_client = struct
 
   let render_view () = Application.render_string !model
 
-  let update_and_render (msg_text : string) =
-    let msg : M.Update.msg =
-      Remote.Dispatch.parse msg_text M.Update.Serializer.deserialize
-    in
-    let new_model, effects = M.Update.update !model msg in
+  let handle_message dispatch msg =
+    let new_model, effects = M.Update.update dispatch !model msg in
     model := new_model ;
     Remote.EffectHandler.run_effects effects ;
     render_view ()
+
+  let update_and_render (send_ui : string -> unit) (msg_text : string) =
+    let rec dispatch (msg : M.Update.msg) =
+      handle_message dispatch msg |> send_ui
+    in
+    let msg : M.Update.msg =
+      Remote.Dispatch.parse msg_text M.Update.Serializer.deserialize
+    in
+    handle_message dispatch msg
 
   let handler id client =
     incr id ;
@@ -105,7 +111,10 @@ module Websocket_client = struct
         | Opcode.Pong ->
             Lwt.return_unit
         | Opcode.Text ->
-            let result = update_and_render fr.content in
+            let send_ui result =
+              Lwt.async (fun _ -> send @@ Frame.create ~content:result ())
+            in
+            let result = update_and_render send_ui fr.content in
             send @@ Frame.create ~content:result ()
         | Opcode.Binary ->
             send @@ Frame.create ~content:"[]" ()

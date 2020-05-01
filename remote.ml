@@ -334,6 +334,13 @@ module EffectHandler = struct
             in
             toast#show)
         |> Lwt.ignore_result
+    | `WebRequest ((url : string), (callback : (string, exn) result -> unit)) ->
+        let open Cohttp_lwt in
+        let open Cohttp_lwt_unix in
+        Uri.of_string url |> Client.get
+        |> (Fun.flip Lwt.bind) (fun (_, body) -> Body.to_string body)
+        |> Lwt_result.catch
+        |> (Fun.flip Lwt.on_success) (fun x -> callback x)
 
   let run_effects effects = effects |> List.iter run_effect
 end

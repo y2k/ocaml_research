@@ -70,7 +70,7 @@ module Update = struct
     let sm, _ = Examples_screen.Update.init in
     ({current= Examples sm; history= []}, [])
 
-  let update model msg =
+  let update dispatch model msg =
     match (model.current, msg) with
     | _, NavigateBack -> (
       match model.history with
@@ -88,8 +88,9 @@ module Update = struct
         let sm, effs = Todolist_screen.Update.update sm smsg in
         ({model with current= Main sm}, effs)
     | Weather sm, WeatherMsg smsg ->
-        (* // FIXME: *)
-        let sm, effs = Weather_screen.update ignore sm smsg in
+        let sm, effs =
+          Weather_screen.update (fun x -> WeatherMsg x |> dispatch) sm smsg
+        in
         ({model with current= Weather sm}, effs)
     | _ ->
         failwith "unhandled state"

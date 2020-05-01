@@ -4,7 +4,7 @@
         {
             "label": "run",
             "type": "shell",
-            "command": "./_build/default/main.exe",
+            "command": "OCAMLRUNPARAM=b ./_build/default/main.exe",
             "dependsOn": "build",
             "problemMatcher": []
         },

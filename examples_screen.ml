@@ -5,7 +5,11 @@ module Update = struct
 
   type model = {items: item list}
 
-  let init = ({items= [{text= "Todo List"; msg= OpenTodoList}]}, [])
+  let init =
+    ( { items=
+          [ {text= "Todo List example"; msg= OpenTodoList}
+          ; {text= "Weather example"; msg= OpenWeather} ] }
+    , [] )
 
   let update model _ = (model, [])
 end

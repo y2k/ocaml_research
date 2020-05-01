@@ -771,7 +771,7 @@
   dependencies:
     tslib "^1.9.3"
 
-"@material/button@=6.0.0-canary.35a32aaea.0":
+"@material/button@6.0.0-canary.35a32aaea.0", "@material/button@=6.0.0-canary.35a32aaea.0":
   version "6.0.0-canary.35a32aaea.0"
   resolved "https://registry.yarnpkg.com/@material/button/-/button-6.0.0-canary.35a32aaea.0.tgz#bc47f32f98516353400eca03108a9d1a812d5e90"
   integrity sha512-iPQlUT+ku4q2KWeMp+IQEp+ejVQY1dKubblLwi6yfOdhlTkPvnf983LD+Iols3OeFELzEYsPOiV8/Iv9O09ZaA==
@@ -842,7 +842,7 @@
     "@material/typography" "6.0.0-canary.35a32aaea.0"
     tslib "^1.9.3"
 
-"@material/icon-button@=6.0.0-canary.35a32aaea.0":
+"@material/icon-button@6.0.0-canary.35a32aaea.0", "@material/icon-button@=6.0.0-canary.35a32aaea.0":
   version "6.0.0-canary.35a32aaea.0"
   resolved "https://registry.yarnpkg.com/@material/icon-button/-/icon-button-6.0.0-canary.35a32aaea.0.tgz#9ab7ce21ea5a042ce9a5a8446e59b6cf94776ba1"
   integrity sha512-zBTSVKErBgpQA9/3fZ7rLPj6IQtfJpt4pj6PJl+65goOpEWzmk3r6mM5BQVGfZ61j8l65gAH56tAV+X7WlQgCQ==
@@ -1006,6 +1006,17 @@
     lit-html "^1.1.2"
     tslib "^1.10.0"
 
+"@material/mwc-snackbar@^0.14.1":
+  version "0.14.1"
+  resolved "https://registry.yarnpkg.com/@material/mwc-snackbar/-/mwc-snackbar-0.14.1.tgz#3c4b6dd5db5562194ca01a08b86433cf46415197"
+  integrity sha512-tLwJGawAY6L0P/eI99CQahjSv97i/ZKhGH2pKB5ANQpNquhP6GBFE8Ghigx+DZVJWXazJ3nqzOzhLylGdMnOaw==
+  dependencies:
+    "@material/mwc-base" "^0.14.1"
+    "@material/snackbar" "=6.0.0-canary.35a32aaea.0"
+    lit-element "^2.3.0"
+    lit-html "^1.1.2"
+    tslib "^1.10.0"
+
 "@material/mwc-textfield@^0.14.1":
   version "0.14.1"
   resolved "https://registry.yarnpkg.com/@material/mwc-textfield/-/mwc-textfield-0.14.1.tgz#05214158f780785c88e7d7649ebf99b524eca733"
@@ -1088,6 +1099,25 @@
   dependencies:
     "@material/feature-targeting" "6.0.0-canary.35a32aaea.0"
     "@material/rtl" "6.0.0-canary.35a32aaea.0"
+
+"@material/snackbar@=6.0.0-canary.35a32aaea.0":
+  version "6.0.0-canary.35a32aaea.0"
+  resolved "https://registry.yarnpkg.com/@material/snackbar/-/snackbar-6.0.0-canary.35a32aaea.0.tgz#a58494159df29b9f480da6aa792fe0246e980800"
+  integrity sha512-V7+2S2fNg49u7+Kus69KncGpKk1vYXOFs45gl0zcECBQ9shuWbjuJH8o9OtthlYZAQq3BfaV34zkR/dVZljl8A==
+  dependencies:
+    "@material/animation" "6.0.0-canary.35a32aaea.0"
+    "@material/base" "6.0.0-canary.35a32aaea.0"
+    "@material/button" "6.0.0-canary.35a32aaea.0"
+    "@material/dom" "6.0.0-canary.35a32aaea.0"
+    "@material/elevation" "6.0.0-canary.35a32aaea.0"
+    "@material/feature-targeting" "6.0.0-canary.35a32aaea.0"
+    "@material/icon-button" "6.0.0-canary.35a32aaea.0"
+    "@material/ripple" "6.0.0-canary.35a32aaea.0"
+    "@material/rtl" "6.0.0-canary.35a32aaea.0"
+    "@material/shape" "6.0.0-canary.35a32aaea.0"
+    "@material/theme" "6.0.0-canary.35a32aaea.0"
+    "@material/typography" "6.0.0-canary.35a32aaea.0"
+    tslib "^1.9.3"
 
 "@material/textfield@=6.0.0-canary.35a32aaea.0":
   version "6.0.0-canary.35a32aaea.0"
