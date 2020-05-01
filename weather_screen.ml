@@ -1,4 +1,4 @@
-type model = {city: string; temp: float}
+type model = {city: string; temp: float option; error: bool}
 
 type msg =
   | LoadTemperature
@@ -21,25 +21,36 @@ let download (url : string) deserialize (dispatch : _ -> unit) =
 
 let ( >> ) f g x = g (f x)
 
+let init = ({city= ""; temp= None; error= false}, [])
+
 let update (dispatch : msg -> unit) model msg =
   match msg with
   | CityChanged city ->
       ({model with city}, [])
   | LoadTemperature ->
-      ( model
+      ( {model with error= false}
       , [ download
-            "https://api.openweathermap.org/data/2.5/weather?q=$city&units=metric&lang=en"
+            (Printf.sprintf
+               "https://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&lang=en"
+               model.city)
             deserialize
             (loadTemperatureEnd >> dispatch) ] )
   | LoadTemperatureEnd (Ok temp) ->
-      ({model with temp}, [])
+      ({model with temp= Some temp}, [])
   | LoadTemperatureEnd (Error _) ->
-      failwith "???"
+      ({model with error= true}, [])
 
 open Dsl
 module M = Dsl.Material
 
-let view model dispatch =
+let view_temp model =
+  match model.temp with
+  | Some temp ->
+      span [] [text @@ Printf.sprintf "%g C" temp]
+  | None ->
+      div [] []
+
+let view dispatch model  =
   div
     [("style", "display: flex; flex-direction: column")]
     [ M.textfield
@@ -50,4 +61,6 @@ let view model dispatch =
         [ ("label", "Load wheather")
         ; ("style", "margin: 4px")
         ; ("raised", "")
-        ; ("onclick", dispatch LoadTemperature) ] ]
+        ; ("onclick", dispatch LoadTemperature) ]
+    ; view_temp model
+    ; M.snackbar [("open", string_of_bool model.error)] [] ]

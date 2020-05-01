@@ -1,13 +1,15 @@
 module Update = struct
   type sub_model =
-    | Main of Main_screen.Update.model
+    | Main of Todolist_screen.Update.model
     | Examples of Examples_screen.Update.model
+    | Weather of Weather_screen.model
 
   type model = {current: sub_model; history: sub_model list}
 
   type msg =
-    | MainMsg of Main_screen.Update.msg
+    | MainMsg of Todolist_screen.Update.msg
     | ExamplesMsg of Examples_screen.Update.msg
+    | WeatherMsg of Weather_screen.msg
     | NavigateBack
 
   module Serializer = struct
@@ -17,7 +19,17 @@ module Update = struct
       | NavigateBack ->
           `String "nb"
       | MainMsg smsg ->
-          `Assoc [("m", Main_screen.Update.Serializer.serialize smsg)]
+          `Assoc [("m", Todolist_screen.Update.Serializer.serialize smsg)]
+      | WeatherMsg smsg ->
+          `Assoc
+            [ ( "wm"
+              , match smsg with
+                | LoadTemperature ->
+                    `Assoc [("lt", `Null)]
+                | CityChanged x ->
+                    `Assoc [("ch", `String x)]
+                | _ ->
+                    failwith "unsupported variant" ) ]
       | ExamplesMsg smsg ->
           `Assoc
             [ ( "m2"
@@ -32,7 +44,16 @@ module Update = struct
       | `String "nb" ->
           NavigateBack
       | `Assoc [("m", sjson)] ->
-          MainMsg (Main_screen.Update.Serializer.deserialize sjson)
+          MainMsg (Todolist_screen.Update.Serializer.deserialize sjson)
+      | `Assoc [("wm", sjson)] ->
+          WeatherMsg
+            ( match sjson with
+            | `Assoc [("lt", `Null)] ->
+                LoadTemperature
+            | `Assoc [("ch", `String x)] ->
+                CityChanged x
+            | _ ->
+                failwith @@ "illegal json = " ^ Yojson.Basic.show json )
       | `Assoc [("m2", sjson)] -> (
         match sjson with
         | `String "ow" ->
@@ -58,16 +79,20 @@ module Update = struct
       | _ ->
           (model, []) )
     | _, ExamplesMsg Examples_screen.Update.OpenTodoList ->
-        let sm, effs = Main_screen.Update.init in
+        let sm, effs = Todolist_screen.Update.init in
         ({current= Main sm; history= model.current :: model.history}, effs)
+    | _, ExamplesMsg Examples_screen.Update.OpenWeather ->
+        let sm, effs = Weather_screen.init in
+        ({current= Weather sm; history= model.current :: model.history}, effs)
     | Main sm, MainMsg smsg ->
-        let sm, effs = Main_screen.Update.update sm smsg in
+        let sm, effs = Todolist_screen.Update.update sm smsg in
         ({model with current= Main sm}, effs)
-    | Examples sm, ExamplesMsg smsg ->
-        let sm, effs = Examples_screen.Update.update sm smsg in
-        ({model with current= Examples sm}, effs)
+    | Weather sm, WeatherMsg smsg ->
+        (* // FIXME: *)
+        let sm, effs = Weather_screen.update ignore sm smsg in
+        ({model with current= Weather sm}, effs)
     | _ ->
-        failwith "???"
+        failwith "unhandled state"
 end
 
 module View = struct
@@ -79,10 +104,13 @@ module View = struct
     match model with
     | Main sub_model ->
         Diff.LazyView.view sub_model
-          (Main_screen.View.view (fun x -> MainMsg x |> dispatch))
+          (Todolist_screen.View.view (fun x -> MainMsg x |> dispatch))
     | Examples sub_model ->
         Diff.LazyView.view sub_model
           (Examples_screen.View.view (fun x -> ExamplesMsg x |> dispatch))
+    | Weather sub_model ->
+        Diff.LazyView.view sub_model
+          (Weather_screen.view (fun x -> WeatherMsg x |> dispatch))
 
   let view (model : Update.model) dispatch =
     M.top_app_bar []

@@ -78,6 +78,9 @@ let rec render node =
       Printf.sprintf "<%s%s>%s</%s>" node.tag ps chs node.tag
 
 module Material = struct
+  let snackbar props children =
+    {tag= "mwc-snackbar"; props; children; lazyNode= None}
+
   let textfield props =
     {tag= "mwc-textfield"; props; children= []; lazyNode= None}
 
