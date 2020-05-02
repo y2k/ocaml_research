@@ -1,5 +1,5 @@
 module Update = struct
-  type msg = OpenWeather | OpenTodoList
+  type msg = OpenWeather | OpenTodoList | OpenFeed
 
   type item = {text: string; msg: msg}
 
@@ -8,7 +8,8 @@ module Update = struct
   let init =
     ( { items=
           [ {text= "Todo List example"; msg= OpenTodoList}
-          ; {text= "Weather example"; msg= OpenWeather} ] }
+          ; {text= "Weather example"; msg= OpenWeather}
+          ; {text= "Feed example"; msg= OpenFeed} ] }
     , [] )
 
   let update model _ = (model, [])

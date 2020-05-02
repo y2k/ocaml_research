@@ -12,6 +12,8 @@ let a props children = {tag= "a"; props; children; lazyNode= None}
 
 let article props children = {tag= "article"; props; children; lazyNode= None}
 
+let img props = {tag= "img"; props; children= []; lazyNode= None}
+
 let body props children = {tag= "body"; props; children; lazyNode= None}
 
 let button props children = {tag= "button"; props; children; lazyNode= None}
