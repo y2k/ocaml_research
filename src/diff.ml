@@ -126,26 +126,26 @@ module Renderer = struct
                            remote_ui_ws.onmessage = function(msg) {
                              const cmds = JSON.parse(msg.data);
                              for (cmd of cmds) {
-                               switch (cmd.tag) {
-                                 case "add-node":
-                                   if (cmd.name != "") {
-                                     const node = document.createElement(cmd.name);
-                                     node.id = cmd.id;
-                                     document.getElementById(cmd.parent_id || "container").appendChild(node);
+                               switch (cmd.t) {
+                                 case "a":
+                                   if (cmd.n != "") {
+                                     const node = document.createElement(cmd.n);
+                                     node.id = cmd.i;
+                                     document.getElementById(cmd.p || "container").appendChild(node);
                                    }
                                    break;
-                                 case "remove-node":
-                                   document.getElementById(cmd.id).remove();
+                                 case "r":
+                                   document.getElementById(cmd.i).remove();
                                    break;
-                                 case "set-prop":
-                                   if (cmd.name == "") {
-                                     document.getElementById(cmd.id.substring(2) || "container").innerText = cmd.value;
+                                 case "s":
+                                   if (cmd.n == "") {
+                                     document.getElementById(cmd.i.substring(2) || "container").innerText = cmd.v;
                                    } else {
-                                     document.getElementById(cmd.id).setAttribute(cmd.name, cmd.value)
+                                     document.getElementById(cmd.i).setAttribute(cmd.n, cmd.v)
                                    }
                                    break;
-                                 case "remove-prop":
-                                   document.getElementById(cmd.id).removeAttribute(cmd.name)
+                                 case "d":
+                                   document.getElementById(cmd.i).removeAttribute(cmd.n)
                                    break;
                                }
                              }

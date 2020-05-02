@@ -1,17 +1,3 @@
-(*
-
-Toast.makeText(context, "hello", Toast.LENGTH_LONG).show()
-Toast.makeText(App.instance, "hello", 0).show()
-android.widget.Toast.makeText(App.instance, "hello", 0).show()
-android.widget.Toast.makeText(<context>, "hello", 0).show()
-
-(.show
-  (android.widget.Toast.makeText
-    (android-context)
-    "hello"
-    0))
-*)
-
 module Remote = struct
   type obj = {handler: int}
 

@@ -35,25 +35,25 @@ module Application = struct
     |> List.map (function
          | AddNode (parent_id, id, name) ->
              `Assoc
-               [ ("tag", `String "add-node")
-               ; ("parent_id", `String (id_to_string parent_id))
-               ; ("id", `String (id_to_string id))
-               ; ("name", `String name) ]
+               [ ("t", `String "a")
+               ; ("p", `String (id_to_string parent_id))
+               ; ("i", `String (id_to_string id))
+               ; ("n", `String name) ]
          | RemoveNode id ->
              `Assoc
-               [ ("tag", `String "remove-node")
-               ; ("id", `String (id_to_string id)) ]
+               [ ("t", `String "r")
+               ; ("i", `String (id_to_string id)) ]
          | SetProp (id, key, value) ->
              `Assoc
-               [ ("tag", `String "set-prop")
-               ; ("id", `String (id_to_string id))
-               ; ("name", `String key)
-               ; ("value", `String value) ]
+               [ ("t", `String "s")
+               ; ("i", `String (id_to_string id))
+               ; ("n", `String key)
+               ; ("v", `String value) ]
          | RemoveProp (id, key) ->
              `Assoc
-               [ ("tag", `String "remove-prop")
-               ; ("id", `String (id_to_string id))
-               ; ("name", `String key) ])
+               [ ("t", `String "d")
+               ; ("i", `String (id_to_string id))
+               ; ("n", `String key) ])
     |> fun x -> Yojson.to_string (`List x)
 end
 
