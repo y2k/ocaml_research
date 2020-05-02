@@ -4,14 +4,14 @@
         {
             "label": "run",
             "type": "shell",
-            "command": "OCAMLRUNPARAM=b ./_build/default/main.exe",
+            "command": "OCAMLRUNPARAM=b ./src/_build/default/main.exe",
             "dependsOn": "build",
             "problemMatcher": []
         },
         {
             "label": "build",
             "type": "shell",
-            "command": "dune build",
+            "command": "cd src && dune build",
             "group": {
                 "kind": "build",
                 "isDefault": true
