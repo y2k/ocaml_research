@@ -113,12 +113,19 @@ module View = struct
         Diff.LazyView.view sub_model
           (Weather_screen.view (fun x -> WeatherMsg x |> dispatch))
 
-  let view (model : Update.model) dispatch =
-    M.top_app_bar []
-      [ M.icon_button
+  let view_back_button dispatch history =
+    match history with
+    | [] ->
+        div [] []
+    | _ :: _ ->
+        M.icon_button
           [ ("icon", "arrow_back")
           ; ("slot", "navigationIcon")
           ; ("onclick", dispatch NavigateBack) ]
+
+  let view (model : Update.model) dispatch =
+    M.top_app_bar []
+      [ view_back_button dispatch model.history
       ; div [("slot", "title")] [text "OCaml remote research"]
       ; view_content model.current dispatch ]
 end
