@@ -5,3 +5,4 @@ import '@material/mwc-list';
 import '@material/mwc-list/mwc-list-item.js';
 import '@material/mwc-top-app-bar';
 import '@material/mwc-snackbar';
+import '@material/mwc-linear-progress';

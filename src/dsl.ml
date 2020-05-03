@@ -83,6 +83,9 @@ module Material = struct
   let snackbar props children =
     {tag= "mwc-snackbar"; props; children; lazyNode= None}
 
+  let linear_progress props =
+    {tag= "mwc-linear-progress"; props; children= []; lazyNode= None}
+
   let textfield props =
     {tag= "mwc-textfield"; props; children= []; lazyNode= None}
 

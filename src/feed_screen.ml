@@ -51,4 +51,12 @@ let view_item post =
         ; ("src", (Option.get post.image).url)
         ; ("loading", "lazy") ] ]
 
-let view _dispatch model = M.list [] (model.posts |> List.map view_item)
+let view_progress = function
+  | Loading ->
+      M.linear_progress [("indeterminate", "")]
+  | _ ->
+      div [] []
+
+let view _dispatch model =
+  div []
+    [view_progress model.status; M.list [] (model.posts |> List.map view_item)]
