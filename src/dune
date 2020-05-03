@@ -2,5 +2,5 @@
   (flags (:standard -warn-error -A))
   (name main)
   (preprocess (pps ppx_let lwt_ppx))
-  (libraries str cohttp-lwt-unix cohttp lwt websocket websocket-lwt-unix yojson))
+  (libraries str cohttp-lwt-unix cohttp lwt websocket websocket-lwt-unix yojson decoders-yojson))
 

@@ -18,8 +18,6 @@ let parse_posts json =
             { url= json |> member "url" |> to_string
             ; aspect= json |> member "aspect" |> to_float } ) }
 
-type status = Loading | Error | Finished
-
 type model = {posts: post list; status: status}
 
 type msg = PostsLoaded of (post list, exn) result
