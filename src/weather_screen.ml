@@ -1,3 +1,5 @@
+open Prelude
+
 type model = {city: string; temp: float option; error: bool}
 
 type msg =
@@ -19,8 +21,6 @@ let download (url : string) deserialize (dispatch : _ -> unit) =
   let f x = x |> Fun.flip Result.bind (decode deserialize) |> dispatch in
   `WebRequest (url, f)
 
-let ( >> ) f g x = g (f x)
-
 let init = ({city= ""; temp= None; error= false}, [])
 
 let update (dispatch : msg -> unit) model msg =
@@ -33,8 +33,7 @@ let update (dispatch : msg -> unit) model msg =
       , [ download
             (Printf.sprintf
                "https://api.openweathermap.org/data/2.5/weather?appid=%s&q=%s&units=metric&lang=en"
-               token
-               model.city)
+               token model.city)
             deserialize
             (loadTemperatureEnd >> dispatch) ] )
   | LoadTemperatureEnd (Ok temp) ->

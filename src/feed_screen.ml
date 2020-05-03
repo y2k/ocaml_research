@@ -1,12 +1,8 @@
+open Prelude
+
 type attachment = {url: string; aspect: float}
 
 type post = {title: string; image: attachment option}
-
-(* https://jrs.y2k.work/parse/http%3A%2F%2Fjoyreactor.cc%2Ftag%2F%D0%BC%D0%B5%D0%BC%D1%8B *)
-
-let ( >> ) f g x = g (f x)
-
-let hd_opt = function x :: _ -> Some x | [] -> None
 
 let parse_posts json =
   let open Yojson.Basic.Util in
