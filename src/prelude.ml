@@ -1,5 +1,16 @@
 let ( >> ) f g x = g (f x)
 
+module ListEx = struct
+  let reduce f empty xs =
+    match xs with
+    | [x] ->
+        x
+    | x :: xs ->
+        xs |> List.fold_left f x
+    | [] ->
+        empty ()
+end
+
 let hd_opt = function x :: _ -> Some x | [] -> None
 
 type status = Loading | Error | Finished

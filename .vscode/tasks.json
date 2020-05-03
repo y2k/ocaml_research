@@ -2,9 +2,16 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "run",
+            "label": "cold run",
             "type": "shell",
-            "command": "OCAMLRUNPARAM=b ./src/_build/default/main.exe",
+            "command": "rm -f hot-reload.log && OCAMLRUNPARAM=b ./src/_build/default/main.exe",
+            "dependsOn": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "hot-reload",
+            "type": "shell",
+            "command": "OCAMLRUNPARAM=b ./src/_build/default/main.exe -hr hot-reload.log",
             "dependsOn": "build",
             "problemMatcher": []
         },

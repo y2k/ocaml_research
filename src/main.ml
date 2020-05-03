@@ -1,14 +1,4 @@
-module ListEx = struct
-  let reduce f empty xs =
-    match xs with
-    | [x] ->
-        x
-    | x :: xs ->
-        xs |> List.fold_left f x
-    | [] ->
-        empty ()
-end
-
+open Prelude
 module M = Navigation
 
 module Application = struct
@@ -40,9 +30,7 @@ module Application = struct
                ; ("i", `String (id_to_string id))
                ; ("n", `String name) ]
          | RemoveNode id ->
-             `Assoc
-               [ ("t", `String "r")
-               ; ("i", `String (id_to_string id)) ]
+             `Assoc [("t", `String "r"); ("i", `String (id_to_string id))]
          | SetProp (id, key, value) ->
              `Assoc
                [ ("t", `String "s")
@@ -57,6 +45,8 @@ module Application = struct
     |> fun x -> Yojson.to_string (`List x)
 end
 
+let hot_reload_file = ref ""
+
 module Websocket_client = struct
   open Lwt.Infix
   open Websocket
@@ -64,13 +54,35 @@ module Websocket_client = struct
 
   let section = Lwt_log.Section.make "websocket"
 
+  let try_load_state_from_disk () : M.Update.model option =
+    match !hot_reload_file with
+    | file when file <> "" && Sys.file_exists file ->
+        let channel = open_in_bin file in
+        let m : M.Update.model = Marshal.from_channel channel in
+        close_in channel ; Some m
+    | _ ->
+        None
+
+  let try_save_hot_reload (model : M.Update.model) =
+    match !hot_reload_file with
+    | "" ->
+        ()
+    | file ->
+        let channel = open_out_bin file in
+        Marshal.to_channel channel model [] ;
+        close_out channel
+
   let model = ref @@ fst M.Update.init
+
+  let try_reload_model_from_disk () =
+    try_load_state_from_disk () |> Option.iter @@ fun x -> model := x
 
   let render_view () = Application.render_string !model
 
   let handle_message dispatch msg =
     let new_model, effects = M.Update.update dispatch !model msg in
     model := new_model ;
+    try_save_hot_reload new_model ;
     Remote.EffectHandler.run_effects effects ;
     render_view ()
 
@@ -154,7 +166,15 @@ let server_callback _ (req : Request.t) body =
   | path ->
       Server.respond_file ~fname:("output" ^ path) ()
 
+let parse_args () =
+  let speclist =
+    [("-hr", Arg.String (fun d -> hot_reload_file := d), "Hot-Reload file")]
+  in
+  Arg.parse speclist print_endline ""
+
 let () =
+  parse_args () ;
+  Websocket_client.try_reload_model_from_disk () ;
   [ Server.create
       ~mode:(`TCP (`Port 8080))
       (Server.make ~callback:server_callback ())
