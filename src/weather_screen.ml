@@ -65,6 +65,6 @@ let view dispatch model =
         ; ("onclick", dispatch LoadTemperature) ]
     ; view_temp model
     ; M.snackbar
-        [ ("open", string_of_bool model.error)
+        [ ((if model.error then "isopen" else "_isopen"), "")
         ; ("labelText", "Error, try again later") ]
         [] ]
