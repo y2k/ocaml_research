@@ -74,6 +74,17 @@ module Update = struct
           failwith @@ "illegal json = " ^ Yojson.Basic.show json
   end
 
+  let model_to_title model =
+    match model.current with
+    | Main _ ->
+        "TodoList"
+    | Examples _ ->
+        "OCaml remote"
+    | Weather _ ->
+        "Weather"
+    | FeedModel _ ->
+        "Feed"
+
   let init =
     let sm, _ = Examples_screen.Update.init in
     ({current= Examples sm; history= []}, [])
@@ -145,6 +156,6 @@ module View = struct
   let view (model : Update.model) dispatch =
     M.top_app_bar []
       [ view_back_button dispatch model.history
-      ; div [("slot", "title")] [text "OCaml remote research"]
+      ; div [("slot", "title")] [text @@ model_to_title model]
       ; view_content model.current dispatch ]
 end
