@@ -100,7 +100,9 @@ module Websocket_client = struct
     let id = !id in
     let send = Connected_client.send client in
     Lwt_log.ign_info_f ~section "New connection (id = %d)" id ;
-    Lwt.async (fun () -> send @@ Frame.create ~content:(render_view ()) ()) ;
+    Lwt.async (fun () ->
+        Application.prev_state := [] ;
+        send @@ Frame.create ~content:(render_view ()) ()) ;
     let rec recv_forever () =
       let open Frame in
       let react fr =
@@ -136,8 +138,9 @@ module Websocket_client = struct
       Connected_client.recv client >>= react >>= recv_forever
     in
     Lwt.catch recv_forever (fun exn ->
-        Lwt_log.info_f ~section "Connection to client %d lost" id
-        >>= fun () -> Lwt.fail exn)
+        Lwt_log.info_f ~section "Connection to client %d lost (%s)" id
+          (Printexc.to_string exn)
+        >>= fun () -> Lwt.return_unit)
 
   let start =
     let uri = Uri.of_string "http://localhost:8081" in
