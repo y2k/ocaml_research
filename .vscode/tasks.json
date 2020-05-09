@@ -18,6 +18,9 @@
         {
             "label": "build",
             "type": "shell",
+            "presentation": {
+                "reveal": "silent"
+            },
             "command": "cd src && dune build",
             "group": {
                 "kind": "build",

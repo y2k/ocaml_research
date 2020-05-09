@@ -1,27 +1,38 @@
 module VirtualMap = struct
-  type t = {collection: string; version: int option}
+  type db = {collection: string; version: int option}
 
-  type 'a m = {db: t}
+  type 'a t =
+    { db: db
+    ; order_desc: bool
+    ; value: 'a option
+    ; only_count: bool
+    ; offset: int
+    ; limit: int }
 
-  let last_db : t = failwith "???"
+  let local_db : db = {collection= ""; version= None}
 
-  let create (_name : string) : t Lwt.t = failwith "???"
+  module M = Map.Make (String)
 
-  let count (_ : t) : int m = failwith "???"
+  let state : bytes M.t ref = ref M.empty
 
-  let paged (_ : t) (_page_size : int) : 'a list m = failwith "???"
+  let insert (_ : db) (_ : 'a) : db Lwt.t =
+    Lwt.return () |> Lwt.map (fun _ -> failwith "???")
 
-  let get_otp (_ : 'a m) : 'a option = failwith "???"
+  let fill (_ : 't) : 't Lwt.t = failwith "???"
 
-  let get (_ : 'a m) : 'a = failwith "???"
+  let map (_ : 'a -> 'b) (_ : 'a t) : 'b t = failwith "???"
 
-  let insert (_ : 'a) : 'b Lwt.t = failwith "???"
+  let count (db : db) : int t =
+    {db; order_desc= false; value= None; only_count= true; offset= 0; limit= 0}
 
-  let map (_ : 'a -> 'b) (_ : 'a m) : 'b m = failwith "???"
+  let paged (db : db) (limit : int) : 'a list t =
+    {db; order_desc= false; value= None; only_count= false; offset= 0; limit}
 
-  let set_offset (_ : int) (_ : 'a list m) : 'a list m = failwith "???"
+  let get (x : 'a t) : 'a = Option.get x.value
 
-  let move_offset (_ : int) (_ : 'a list m) : 'a list m = failwith "???"
+  let sort desc t = {t with order_desc= desc}
+
+  let set_offset (offset : int) (x : 'a list t) : 'a list t = {x with offset}
 end
 
 module MainScreen = struct
@@ -30,13 +41,13 @@ module MainScreen = struct
 
   type todo = {text: string}
 
-  type model = {count: int V.m; last_todos: todo list V.m; text: string}
+  type model = {count: int V.t; last_todos: todo list V.t; text: string}
 
-  type msg = TextChanged of string | Create | InsertEnd of V.t
+  type msg = TextChanged of string | Create | InsertEnd of V.db
 
   let init =
-    let db = V.last_db in
-    {count= V.count db; last_todos= V.paged db 20; text= ""}
+    let db = V.local_db in
+    {count= V.count db; last_todos= V.paged db 20 |> V.sort false; text= ""}
 
   let update (model : model) (msg : msg) =
     match msg with
@@ -45,7 +56,7 @@ module MainScreen = struct
     | Create ->
         let todo = {text= model.text} in
         ( {model with text= ""}
-        , [V.insert todo |> Lwt.map (fun x -> InsertEnd x)] )
+        , [V.insert V.local_db todo |> Lwt.map (fun x -> InsertEnd x)] )
     | InsertEnd db ->
         ({model with count= V.count db; last_todos= V.paged db 20}, [])
 
@@ -67,13 +78,13 @@ module HistoryScreen = struct
 
   type todo = {text: string}
 
-  type model = {todos: todo list V.m; page_count: int V.m; page: int}
+  type model = {todos: todo list V.t; page_count: int V.t; page: int}
 
   type msg = Next
 
   let init =
-    { todos= V.paged V.last_db page_size
-    ; page_count= V.count V.last_db |> V.map (fun x -> x / page_size)
+    { todos= V.paged V.local_db page_size
+    ; page_count= V.count V.local_db |> V.map (fun x -> x / page_size)
     ; page= 0 }
 
   let update model msg =
