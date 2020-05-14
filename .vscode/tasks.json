@@ -4,14 +4,14 @@
         {
             "label": "cold run",
             "type": "shell",
-            "command": "rm -f hot-reload.log && OCAMLRUNPARAM=b ./src/_build/default/main.exe",
+            "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && rm -f hot-reload.log && ./src/_build/default/main.exe -hr hot-reload.log",
             "dependsOn": "build",
             "problemMatcher": []
         },
         {
             "label": "hot-reload",
             "type": "shell",
-            "command": "OCAMLRUNPARAM=b ./src/_build/default/main.exe -hr hot-reload.log",
+            "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && ./src/_build/default/main.exe -hr hot-reload.log",
             "dependsOn": "build",
             "problemMatcher": []
         },

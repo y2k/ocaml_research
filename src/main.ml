@@ -155,15 +155,31 @@ end
 open Lwt
 open Cohttp_lwt
 open Cohttp_lwt_unix
+module C = Cohttp.Cookie.Cookie_hdr
+module H = Cohttp.Header
 
 let render _ = Diff.Renderer.render |> Dsl.render
+
+let add_sign_cookies (req : Request.t) =
+  let cookies = C.extract req.headers in
+  if List.exists (fun (k, _) -> k = "user_id") cookies then H.init ()
+  else (
+    Random.self_init () ;
+    let id =
+      List.init 5 (fun _ -> Random.int 1000000)
+      |> List.fold_left (Printf.sprintf "%s-%i") ""
+    in
+    let k, v = C.serialize [("user_id", id)] in
+    H.init_with k v )
 
 let server_callback _ (req : Request.t) body =
   print_endline @@ "resource = " ^ req.resource ;
   match req.resource with
   | "/" ->
+      let cookies = add_sign_cookies req in
       Body.to_string body
-      >>= fun form -> Server.respond_string ~status:`OK ~body:(render form) ()
+      >>= fun form ->
+      Server.respond_string ~headers:cookies ~status:`OK ~body:(render form) ()
   | "/sw.js" | "/favicon.ico" ->
       Server.respond_not_found ()
   | path ->
