@@ -121,36 +121,48 @@ module Renderer = struct
           ; script []
               [ text
                   {|
-                         (function() {
-                           remote_ui_ws = new WebSocket('ws://' + window.location.hostname +':8081/');
-                           remote_ui_ws.onmessage = function(msg) {
-                             const cmds = JSON.parse(msg.data);
-                             for (cmd of cmds) {
-                               switch (cmd.t) {
-                                 case "a":
-                                   if (cmd.n != "") {
-                                     const node = document.createElement(cmd.n);
-                                     node.id = cmd.i;
-                                     document.getElementById(cmd.p || "container").appendChild(node);
-                                   }
-                                   break;
-                                 case "r":
-                                   document.getElementById(cmd.i).remove();
-                                   break;
-                                 case "s":
-                                   if (cmd.n == "") {
-                                     document.getElementById(cmd.i.substring(2) || "container").innerText = cmd.v;
-                                   } else {
-                                     document.getElementById(cmd.i).setAttribute(cmd.n, cmd.v)
-                                   }
-                                   break;
-                                 case "d":
-                                   document.getElementById(cmd.i).removeAttribute(cmd.n)
-                                   break;
-                               }
-                             }
-                           };
-                         })();
+(function() {
+  function reconect() {
+    remote_ui_ws = new WebSocket('ws://' + window.location.hostname + ':8081/');
+    remote_ui_ws.onclose = function(event) { reconectWithDelay(); };
+    let isFirstMessage = true;
+    remote_ui_ws.onmessage = function(msg) {
+      if (isFirstMessage) {
+        document.getElementById("container").innerHTML = "";
+        isFirstMessage = false;
+      }
+      const cmds = JSON.parse(msg.data);
+      for (cmd of cmds) {
+        switch (cmd.t) {
+          case "a":
+            if (cmd.n != "") {
+              const node = document.createElement(cmd.n);
+              node.id = cmd.i;
+              document.getElementById(cmd.p || "container").appendChild(node);
+            }
+            break;
+          case "r":
+            document.getElementById(cmd.i).remove();
+            break;
+          case "s":
+            if (cmd.n == "") {
+              document.getElementById(cmd.i.substring(2) || "container").innerText = cmd.v;
+            } else {
+              document.getElementById(cmd.i).setAttribute(cmd.n, cmd.v)
+            }
+            break;
+          case "d":
+            document.getElementById(cmd.i).removeAttribute(cmd.n)
+            break;
+        }
+      }
+    };
+  };
+  function reconectWithDelay() { 
+    setTimeout(function () { reconect() }, 2000) 
+  }
+  reconect();
+})();
                        |}
               ] ] ]
 end

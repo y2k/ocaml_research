@@ -30,3 +30,4 @@ _opam/
 node_modules/
 output/
 *.log
+*.db

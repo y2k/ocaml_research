@@ -309,6 +309,8 @@ module Example = struct
 end
 
 module EffectHandler = struct
+  let store = Storage.TodoStore.init "main.db"
+
   let run_effect = function
     | `ShowNotification msg ->
         RemoteTransaction.run (Example.show_notification msg)
@@ -327,6 +329,9 @@ module EffectHandler = struct
         |> (Fun.flip Lwt.bind) (fun (_, body) -> Body.to_string body)
         |> Lwt_result.catch
         |> (Fun.flip Lwt.on_success) (fun x -> callback x)
+    | `SendEvent (e, callback) ->
+        let db = store e in
+        callback db
 
   let run_effects effects = effects |> List.iter run_effect
 end

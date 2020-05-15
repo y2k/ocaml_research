@@ -30,6 +30,8 @@ module Update = struct
                     `Assoc [("lt", `Null)]
                 | CityChanged x ->
                     `Assoc [("ch", `String x)]
+                | AddToFavorite ->
+                    `Assoc [("a", `Null)]
                 | _ ->
                     failwith "unsupported variant" ) ]
       | ExamplesMsg smsg ->
@@ -54,6 +56,8 @@ module Update = struct
       | `Assoc [("wm", sjson)] ->
           WeatherMsg
             ( match sjson with
+            | `Assoc [("a", `Null)] ->
+                AddToFavorite
             | `Assoc [("lt", `Null)] ->
                 LoadTemperature
             | `Assoc [("ch", `String x)] ->
@@ -98,7 +102,9 @@ module Update = struct
       | _ ->
           (model, []) )
     | _, ExamplesMsg Examples_screen.Update.OpenTodoList ->
-        let sm, effs = Todolist_screen.Update.init in
+        let sm, effs =
+          Todolist_screen.Update.init (fun m -> MainMsg m |> dispatch)
+        in
         ({current= Main sm; history= model.current :: model.history}, effs)
     | _, ExamplesMsg Examples_screen.Update.OpenWeather ->
         let sm, effs = Weather_screen.init in
@@ -107,7 +113,9 @@ module Update = struct
         let sm, effs = Feed_screen.init (fun x -> FeedMsg x |> dispatch) in
         ({current= FeedModel sm; history= model.current :: model.history}, effs)
     | Main sm, MainMsg smsg ->
-        let sm, effs = Todolist_screen.Update.update sm smsg in
+        let sm, effs =
+          Todolist_screen.Update.update (fun m -> MainMsg m |> dispatch) sm smsg
+        in
         ({model with current= Main sm}, effs)
     | Weather sm, WeatherMsg smsg ->
         let sm, effs =

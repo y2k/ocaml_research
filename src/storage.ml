@@ -1,241 +1,76 @@
-module VirtualMap = struct
-  type db = {collection: string; version: int option}
+module TodoStoreReducer = struct
+  type event = TodoCreated of string | TodoRemoved of string | TodoInvalidated
 
-  type 'a t =
-    { db: db
-    ; order_desc: bool
-    ; value: 'a option
-    ; only_count: bool
-    ; offset: int
-    ; limit: int }
+  type store = {todos: string list}
 
-  let local_db : db = {collection= ""; version= None}
+  let empty_store = {todos= []}
 
-  module M = Map.Make (String)
+  let reduce_to_memory (e : event) (db : store) =
+    match e with
+    | TodoCreated x ->
+        {todos= x :: db.todos}
+    | TodoRemoved x ->
+        {todos= db.todos |> List.filter (fun y -> x <> y)}
+    | TodoInvalidated ->
+        db
 
-  let state : bytes M.t ref = ref M.empty
+  let reduce_to_disk (e : event) =
+    match e with
+    | TodoCreated x ->
+        ("INSERT INTO todos VALUES (?)", [x])
+    | TodoRemoved x ->
+        ("DELETE FROM todos WHERE value = ?", [x])
+    | TodoInvalidated ->
+        ("SELECT 1", [])
 
-  let insert (_ : db) (_ : 'a) : db Lwt.t =
-    Lwt.return () |> Lwt.map (fun _ -> failwith "???")
-
-  let fill (_ : 't) : 't Lwt.t = failwith "???"
-
-  let map (_ : 'a -> 'b) (_ : 'a t) : 'b t = failwith "???"
-
-  let count (db : db) : int t =
-    {db; order_desc= false; value= None; only_count= true; offset= 0; limit= 0}
-
-  let paged (db : db) (limit : int) : 'a list t =
-    {db; order_desc= false; value= None; only_count= false; offset= 0; limit}
-
-  let get (x : 'a t) : 'a = Option.get x.value
-
-  let sort desc t = {t with order_desc= desc}
-
-  let set_offset (offset : int) (x : 'a list t) : 'a list t = {x with offset}
+  let restore_from_disk : string list * (string array -> store -> store) =
+    ( ["CREATE TABLE IF NOT EXISTS todos (value TEXT)"; "SELECT * FROM todos"]
+    , fun row s -> {todos= row.(0) :: s.todos} )
 end
 
-module MainScreen = struct
-  open Dsl
-  module V = VirtualMap
+module type StoreReducerSig = sig
+  type event
 
-  type todo = {text: string}
+  type store
 
-  type model = {count: int V.t; last_todos: todo list V.t; text: string}
+  val empty_store : store
 
-  type msg = TextChanged of string | Create | InsertEnd of V.db
+  val reduce_to_memory : event -> store -> store
 
-  let init =
-    let db = V.local_db in
-    {count= V.count db; last_todos= V.paged db 20 |> V.sort false; text= ""}
+  val reduce_to_disk : event -> string * string list
 
-  let update (model : model) (msg : msg) =
-    match msg with
-    | TextChanged x ->
-        ({model with text= x}, [])
-    | Create ->
-        let todo = {text= model.text} in
-        ( {model with text= ""}
-        , [V.insert V.local_db todo |> Lwt.map (fun x -> InsertEnd x)] )
-    | InsertEnd db ->
-        ({model with count= V.count db; last_todos= V.paged db 20}, [])
-
-  let view model dispatch =
-    div []
-      [ input [("onchanged", dispatch @@ TextChanged "{value}")] []
-      ; button [("onclick", dispatch @@ Create)] [text "add"]
-      ; div []
-          ( V.get model.last_todos
-          |> List.map (fun (x : todo) -> div [] [text x.text]) )
-      ; span [] [text ("Count: " ^ string_of_int @@ V.get model.count)] ]
+  val restore_from_disk : string list * (string array -> store -> store)
 end
 
-module HistoryScreen = struct
-  open Dsl
-  module V = VirtualMap
+module PersistentStore (F : StoreReducerSig) : sig
+  val init : string -> F.event -> F.store
+end = struct
+  open Sqlite3
 
-  let page_size = 20
+  let restore db (store : F.store) =
+    let sqls, reduce = F.restore_from_disk in
+    let sr = ref store in
+    sqls
+    |> List.iter (fun sql ->
+           ignore
+             (exec_not_null_no_headers db sql ~cb:(fun row ->
+                  let s = !sr in
+                  sr := reduce row s))) ;
+    !sr
 
-  type todo = {text: string}
-
-  type model = {todos: todo list V.t; page_count: int V.t; page: int}
-
-  type msg = Next
-
-  let init =
-    { todos= V.paged V.local_db page_size
-    ; page_count= V.count V.local_db |> V.map (fun x -> x / page_size)
-    ; page= 0 }
-
-  let update model msg =
-    match msg with
-    | Next ->
-        let new_page = model.page + 1 in
-        ( { model with
-            page= new_page
-          ; todos= model.todos |> V.set_offset (new_page * page_size) }
-        , [] )
-
-  let view model dispatch =
-    div []
-      [ div []
-          ( V.get model.todos
-          |> List.map (fun (x : todo) -> div [] [text x.text]) )
-      ; div []
-          [ span [] [text "0 .. "]
-          ; span [] [text @@ string_of_int model.page]
-          ; span [] [text @@ " .. " ^ string_of_int @@ V.get model.page_count]
-          ; button [("onclick", dispatch Next)] [text "next"] ] ]
+  let init db_name =
+    let store = ref F.empty_store in
+    let db = db_open db_name in
+    store := restore db !store ;
+    fun (e : F.event) ->
+      store := F.reduce_to_memory e !store ;
+      let sql, params = F.reduce_to_disk e in
+      let stmt = prepare db sql in
+      ignore (reset stmt) ;
+      params |> List.iteri (fun i x -> ignore (bind stmt (i + 1) (Data.TEXT x))) ;
+      ignore (step stmt) ;
+      ignore (finalize stmt) ;
+      !store
 end
 
-module Database = struct end
-
-type collection = Collection of string
-
-type key = Key of string
-
-type event = Insert of collection * key * bytes | Delete of collection * key
-
-type cursor = {offset: int; filter: string; order: string option; version: int}
-
-type query =
-  | SelectAllPaged of cursor
-  | SelectCount of cursor * int option
-  | SelectLastOrderedDesc of cursor
-
-module MkStore (T : sig
-  type t
-
-  val default : t
-
-  val diff : t -> t -> event list
-
-  val reduce : t -> event -> t
-
-  val queries : t -> (string * query) list
-end) =
-struct
-  module D = Database
-
-  let store = ref T.default
-
-  let readAll (_ : event -> unit) : unit = failwith "???"
-
-  let saveDiff (_ : event list) : unit = failwith "???"
-
-  let init () = readAll (fun e -> store := T.reduce !store e)
-
-  let update (f : T.t -> T.t * 'a) =
-    let new_store, result = f !store in
-    saveDiff (T.diff !store new_store) ;
-    store := new_store ;
-    result
-end
-
-module Types = struct
-  type todo = Todo of string * float
-
-  type model = {todos: todo list; top_todos: todo list; total_count: int}
-end
-
-module type UserSession = sig
-  val user_id : string
-end
-
-type user_id = UserId of string
-
-module Tests (U : UserSession) = struct
-  open Types
-
-  module Db = MkStore (struct
-    type t = model
-
-    let default = {todos= []; top_todos= []; total_count= 0}
-
-    module Utils = struct
-      let diff_added (_ : 'a list) (_ : 'a list) : 'a list = failwith "???"
-
-      let diff_removed (_ : 'a list) (_ : 'a list) : 'a list = failwith "???"
-
-      let compute_digest (_ : 'a) : string = failwith "???"
-    end
-
-    let queries _ =
-      [ ( "all-count"
-        , SelectCount ({filter= "*"; offset= 0; order= None; version= 0}, None)
-        )
-      ; ( "last-todos"
-        , SelectAllPaged
-            {filter= "*"; offset= 20; order= Some "[created][desc]"; version= 0}
-        ) ]
-
-    let diff (db : model) (new_db : model) =
-      let collection = Collection (U.user_id ^ "_todos") in
-      let added =
-        Utils.diff_added db.todos new_db.todos
-        |> List.map (fun x ->
-               Insert
-                 ( collection
-                 , Key (Utils.compute_digest x)
-                 , Marshal.to_bytes x [] ))
-      in
-      let removed =
-        Utils.diff_removed db.todos new_db.todos
-        |> List.map (fun x -> Delete (collection, Key (Utils.compute_digest x)))
-      in
-      added @ removed
-
-    let reduce (_db : model) (_event : event) = failwith "???"
-  end)
-
-  let add_new (text : string) =
-    let update db = {db with todos= Todo (text, Sys.time ()) :: db.todos} in
-    Db.update (fun db -> (update db, ()))
-
-  let todo_list _user_id =
-    let filter (db : model) = db.todos in
-    Db.update (fun db -> (db, filter db))
-
-  let execute_query (q : query) : query =
-    let find_in_cache (_ : query) : 'a option = failwith "???" in
-    let load_from_disk (_ : query) : 'a = failwith "???" in
-    let save_to_cache (_ : query) _ : unit = failwith "???" in
-    match find_in_cache q with
-    | Some r ->
-        r
-    | None ->
-        let r = load_from_disk q in
-        save_to_cache q r ; r
-
-  let count () =
-    let q =
-      SelectCount
-        ( {filter= "collection = 'todos'"; offset= 0; order= None; version= 0}
-        , None )
-    in
-    match execute_query q with
-    | SelectCount (_, Some count) ->
-        count
-    | _ ->
-        failwith "???"
-end
+module TodoStore = PersistentStore (TodoStoreReducer)

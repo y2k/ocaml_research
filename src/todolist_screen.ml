@@ -1,4 +1,6 @@
 module Update = struct
+  open Storage
+
   type model = {items: string list; text: string; enabled: bool}
 
   type msg =
@@ -7,6 +9,7 @@ module Update = struct
     | ShowToast
     | Delete of int
     | UpdateText of string
+    | StoreUpdated of TodoStoreReducer.store
 
   module Serializer = struct
     let serialize = function
@@ -36,21 +39,34 @@ module Update = struct
           failwith "can't parse json"
   end
 
-  let init = ({items= []; text= ""; enabled= false}, [])
+  let sub (db : TodoStoreReducer.store) (model : model) : model =
+    {model with items= db.todos}
 
-  let update model msg =
+  let init dispatch =
+    ( {items= []; text= ""; enabled= false}
+    , [ `SendEvent
+          ( TodoStoreReducer.TodoInvalidated
+          , fun db -> StoreUpdated db |> dispatch ) ] )
+
+  let update dispatch model msg =
     match msg with
+    | StoreUpdated db ->
+        (sub db model, [])
     | Create ->
-        ({items= model.text :: model.items; text= ""; enabled= false}, [])
+        ( {model with text= ""; enabled= false}
+        , [ `SendEvent
+              ( TodoStoreReducer.TodoCreated model.text
+              , fun db -> StoreUpdated db |> dispatch ) ] )
     | ShowNotification ->
         (model, [`ShowNotification "hello from OCaml"])
     | ShowToast ->
         (model, [`ShowToast "hello from OCaml"])
     | Delete index ->
-        model.items
-        |> List.mapi (fun i x -> if i = index then None else Some x)
-        |> List.filter_map Fun.id
-        |> fun items -> ({model with items}, [])
+        let todo = List.nth model.items index in
+        ( model
+        , [ `SendEvent
+              ( TodoStoreReducer.TodoRemoved todo
+              , fun db -> StoreUpdated db |> dispatch ) ] )
     | UpdateText text ->
         ({model with text; enabled= String.length text > 0}, [])
 end

@@ -4,6 +4,7 @@ type model =
   {city: string; temp: float option; error: string option; loading: bool}
 
 type msg =
+  | AddToFavorite
   | LoadTemperature
   | CityChanged of string
   | LoadTemperatureEnd of (float, exn) result
@@ -18,6 +19,8 @@ let init = ({city= ""; temp= None; error= None; loading= false}, [])
 
 let update (dispatch : msg -> unit) model msg =
   match msg with
+  | AddToFavorite ->
+      (model, [])
   | CityChanged city ->
       ({model with city}, [])
   | LoadTemperature ->
@@ -60,10 +63,17 @@ let view_error model =
 let view dispatch model =
   div
     [("style", "display: flex; flex-direction: column")]
-    [ M.textfield
-        [ ("label", "Enter city name")
-        ; ("value", model.city)
-        ; ("oninput", dispatch @@ CityChanged value_source) ]
+    [ div
+        [("style", "display: flex; align-items: center")]
+        [ M.textfield
+            [ ("style", "flex: 1")
+            ; ("label", "Enter city name")
+            ; ("value", model.city)
+            ; ("oninput", dispatch @@ CityChanged value_source) ]
+        ; M.button
+            [ ("label", "★")
+            ; ("raised", "")
+            ; ("onclick", dispatch AddToFavorite) ] ]
     ; view_progress model.loading
     ; M.button
         [ ("label", "Load wheather")

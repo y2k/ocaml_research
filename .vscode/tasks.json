@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "cold run",
+            "label": "run",
             "type": "shell",
             "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && rm -f hot-reload.log && ./src/_build/default/main.exe -hr hot-reload.log",
             "dependsOn": "build",
