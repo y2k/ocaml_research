@@ -1,13 +1,21 @@
 open Prelude
+module D = Storage.TodoStoreReducer
 
 type model =
-  {city: string; temp: float option; error: string option; loading: bool}
+  { city: string
+  ; temp: float option
+  ; error: string option
+  ; loading: bool
+  ; favorite: string list }
 
 type msg =
   | AddToFavorite
+  | DeleteFavorite of int
+  | SelectFavorite of int
   | LoadTemperature
   | CityChanged of string
   | LoadTemperatureEnd of (float, exn) result
+  | StoreUpdated of D.store
 
 let loadTemperatureEnd x = LoadTemperatureEnd x
 
@@ -15,12 +23,26 @@ let deserialize =
   let module D = Decoders_yojson.Basic.Decode in
   D.at ["main"; "temp"] D.float
 
-let init = ({city= ""; temp= None; error= None; loading= false}, [])
+let init dispatch =
+  ( {city= ""; temp= None; error= None; loading= false; favorite= []}
+  , [`SendEvent (D.TodoInvalidated, fun db -> StoreUpdated db |> dispatch)] )
 
 let update (dispatch : msg -> unit) model msg =
   match msg with
+  | StoreUpdated db ->
+      ({model with favorite= db.favorite_cities}, [])
   | AddToFavorite ->
-      (model, [])
+      ( model
+      , [ `SendEvent
+            (D.CityFavorited model.city, fun db -> StoreUpdated db |> dispatch)
+        ] )
+  | DeleteFavorite i ->
+      ( model
+      , [ `SendEvent
+            ( D.CityUnfavorited (List.nth model.favorite i)
+            , fun db -> StoreUpdated db |> dispatch ) ] )
+  | SelectFavorite i ->
+      ({model with city= List.nth model.favorite i}, [])
   | CityChanged city ->
       ({model with city}, [])
   | LoadTemperature ->
@@ -39,6 +61,16 @@ let update (dispatch : msg -> unit) model msg =
 
 open Dsl
 module M = Dsl.Material
+
+let viewItem dispatch i x =
+  M.list_item
+    [("hasmeta", ""); ("onclick", dispatch @@ SelectFavorite i)]
+    [ span [] [text x]
+    ; span
+        [ ("slot", "meta")
+        ; cls "material-icons"
+        ; ("onclick", dispatch @@ DeleteFavorite i) ]
+        [text "delete"] ]
 
 let view_temp model =
   match model.temp with
@@ -81,4 +113,5 @@ let view dispatch model =
         ; ("raised", "")
         ; ("onclick", dispatch LoadTemperature) ]
     ; view_temp model
+    ; M.list [] (model.favorite |> List.mapi (viewItem dispatch))
     ; view_error model ]

@@ -23,6 +23,8 @@ module Update = struct
           `Assoc [("sn", `Null)]
       | ShowToast ->
           `Assoc [("st", `Null)]
+      | _ ->
+          failwith @@ fst @@ __LOC_OF__ ()
 
     let deserialize = function
       | `Assoc [("u", `String x)] ->
@@ -36,7 +38,7 @@ module Update = struct
       | `Assoc [("st", `Null)] ->
           ShowToast
       | _ ->
-          failwith "can't parse json"
+          failwith @@ fst @@ __LOC_OF__ ()
   end
 
   let sub (db : TodoStoreReducer.store) (model : model) : model =

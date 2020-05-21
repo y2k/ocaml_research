@@ -26,6 +26,10 @@ module Update = struct
           `Assoc
             [ ( "wm"
               , match smsg with
+                | DeleteFavorite x ->
+                    `Assoc [("d", `Int x)]
+                | SelectFavorite x ->
+                    `Assoc [("s", `Int x)]
                 | LoadTemperature ->
                     `Assoc [("lt", `Null)]
                 | CityChanged x ->
@@ -62,6 +66,10 @@ module Update = struct
                 LoadTemperature
             | `Assoc [("ch", `String x)] ->
                 CityChanged x
+            | `Assoc [("d", `Int x)] ->
+                DeleteFavorite x
+            | `Assoc [("s", `Int x)] ->
+                SelectFavorite x
             | _ ->
                 failwith @@ "illegal json = " ^ Yojson.Basic.show json )
       | `Assoc [("m2", sjson)] -> (
@@ -107,7 +115,9 @@ module Update = struct
         in
         ({current= Main sm; history= model.current :: model.history}, effs)
     | _, ExamplesMsg Examples_screen.Update.OpenWeather ->
-        let sm, effs = Weather_screen.init in
+        let sm, effs =
+          Weather_screen.init (fun m -> WeatherMsg m |> dispatch)
+        in
         ({current= Weather sm; history= model.current :: model.history}, effs)
     | _, ExamplesMsg Examples_screen.Update.OpenFeed ->
         let sm, effs = Feed_screen.init (fun x -> FeedMsg x |> dispatch) in

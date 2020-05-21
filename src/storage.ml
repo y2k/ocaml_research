@@ -1,31 +1,48 @@
 module TodoStoreReducer = struct
-  type event = TodoCreated of string | TodoRemoved of string | TodoInvalidated
+  type event =
+    | TodoCreated of string
+    | TodoRemoved of string
+    | TodoInvalidated
+    | CityFavorited of string
+    | CityUnfavorited of string
 
-  type store = {todos: string list}
+  type store = {todos: string list; favorite_cities: string list}
 
-  let empty_store = {todos= []}
+  let empty_store = {todos= []; favorite_cities= []}
 
   let reduce_to_memory (e : event) (db : store) =
     match e with
-    | TodoCreated x ->
-        {todos= x :: db.todos}
-    | TodoRemoved x ->
-        {todos= db.todos |> List.filter (fun y -> x <> y)}
     | TodoInvalidated ->
         db
+    | TodoCreated x ->
+        {db with todos= x :: db.todos}
+    | TodoRemoved x ->
+        {db with todos= db.todos |> List.filter (( <> ) x)}
+    | CityFavorited x ->
+        {db with favorite_cities= x :: db.favorite_cities}
+    | CityUnfavorited x ->
+        {db with favorite_cities= db.favorite_cities |> List.filter (( <> ) x)}
 
   let reduce_to_disk (e : event) =
     match e with
+    | TodoInvalidated ->
+        ("SELECT 1", [])
     | TodoCreated x ->
         ("INSERT INTO todos VALUES (?)", [x])
     | TodoRemoved x ->
         ("DELETE FROM todos WHERE value = ?", [x])
-    | TodoInvalidated ->
-        ("SELECT 1", [])
+    | CityFavorited x ->
+        ("INSERT INTO favorite_cities VALUES (?)", [x])
+    | CityUnfavorited x ->
+        ("DELETE FROM favorite_cities WHERE value = ?", [x])
 
-  let restore_from_disk : string list * (string array -> store -> store) =
-    ( ["CREATE TABLE IF NOT EXISTS todos (value TEXT)"; "SELECT * FROM todos"]
-    , fun row s -> {todos= row.(0) :: s.todos} )
+  let restore_from_disk =
+    [ ( "CREATE TABLE IF NOT EXISTS todos (value TEXT); SELECT * FROM todos"
+      , fun row db -> {db with todos= row.(0) :: db.todos} )
+    ; ( "CREATE TABLE IF NOT EXISTS favorite_cities (value TEXT); SELECT * \
+         FROM favorite_cities"
+      , fun row db -> {db with favorite_cities= row.(0) :: db.favorite_cities}
+      ) ]
 end
 
 module type StoreReducerSig = sig
@@ -39,7 +56,7 @@ module type StoreReducerSig = sig
 
   val reduce_to_disk : event -> string * string list
 
-  val restore_from_disk : string list * (string array -> store -> store)
+  val restore_from_disk : (string * (string array -> store -> store)) list
 end
 
 module PersistentStore (F : StoreReducerSig) : sig
@@ -48,15 +65,15 @@ end = struct
   open Sqlite3
 
   let restore db (store : F.store) =
-    let sqls, reduce = F.restore_from_disk in
-    let sr = ref store in
-    sqls
-    |> List.iter (fun sql ->
-           ignore
-             (exec_not_null_no_headers db sql ~cb:(fun row ->
-                  let s = !sr in
-                  sr := reduce row s))) ;
-    !sr
+    let restore' store (sql, reduce) =
+      let sr = ref store in
+      ignore
+        (exec_not_null_no_headers db sql ~cb:(fun row ->
+             let s = !sr in
+             sr := reduce row s)) ;
+      !sr
+    in
+    F.restore_from_disk |> List.fold_left restore' store
 
   let init db_name =
     let store = ref F.empty_store in
