@@ -5,15 +5,21 @@ module TodoStoreReducer = struct
     | TodoInvalidated
     | CityFavorited of string
     | CityUnfavorited of string
+    | UpdateFeed of Feed_screen.Domain.post list
 
-  type store = {todos: string list; favorite_cities: string list}
+  type store =
+    { todos: string list
+    ; favorite_cities: string list
+    ; feed: Feed_screen.Domain.post list }
 
-  let empty_store = {todos= []; favorite_cities= []}
+  let empty_store = {todos= []; favorite_cities= []; feed= []}
 
   let reduce_to_memory (e : event) (db : store) =
     match e with
     | TodoInvalidated ->
         db
+    | UpdateFeed xs ->
+      { db with feed = xs}
     | TodoCreated x ->
         {db with todos= x :: db.todos}
     | TodoRemoved x ->
@@ -27,6 +33,8 @@ module TodoStoreReducer = struct
     match e with
     | TodoInvalidated ->
         ("SELECT 1", [])
+    | UpdateFeed xs ->
+        failwith "???"
     | TodoCreated x ->
         ("INSERT INTO todos VALUES (?)", [x])
     | TodoRemoved x ->
