@@ -1,5 +1,3 @@
-open Prelude
-
 type attachment = {url: string; aspect: float} [@@deriving yojson]
 
 type post = {title: string; image: attachment option} [@@deriving yojson]
