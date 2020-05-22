@@ -1,6 +1,14 @@
 (executable
   (flags (:standard -warn-error -A))
   (name main)
-  (preprocess (pps ppx_let lwt_ppx))
-  (libraries str cohttp-lwt-unix cohttp lwt websocket websocket-lwt-unix yojson decoders-yojson sqlite3))
-
+  (preprocess (pps ppx_let lwt_ppx ppx_deriving_yojson))
+  (libraries 
+    str
+    cohttp-lwt-unix
+    cohttp
+    lwt
+    websocket
+    websocket-lwt-unix
+    yojson
+    ppx_deriving_yojson.runtime
+    decoders-yojson sqlite3))

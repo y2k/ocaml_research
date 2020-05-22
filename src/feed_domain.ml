@@ -1,19 +1,10 @@
 open Prelude
 
-type attachment = {url: string; aspect: float}
+type attachment = {url: string; aspect: float} [@@deriving yojson]
 
-type post = {title: string; image: attachment option}
+type post = {title: string; image: attachment option} [@@deriving yojson]
 
 let parse_posts json =
-  let open Yojson.Basic.Util in
-  json |> Yojson.Basic.from_string |> member "posts" |> member "posts"
-  |> to_list
-  |> List.map
-     @@ fun json ->
-     { title= json |> member "title" |> to_string
-     ; image=
-         ( json |> member "image" |> to_list |> hd_opt
-         |> Option.map
-            @@ fun json ->
-            { url= json |> member "url" |> to_string
-            ; aspect= json |> member "aspect" |> to_float } ) }
+  let open Yojson.Safe.Util in
+  json |> Yojson.Safe.from_string |> member "posts" |> member "posts" |> to_list
+  |> List.map @@ fun json -> post_of_yojson json |> Result.get_ok
