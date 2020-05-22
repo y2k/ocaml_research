@@ -16,6 +16,15 @@
             "problemMatcher": []
         },
         {
+            "label": "clean build",
+            "type": "shell",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "command": "cd src && dune clean && dune build",
+            "problemMatcher": []
+        },
+        {
             "label": "build",
             "type": "shell",
             "presentation": {

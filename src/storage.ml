@@ -5,12 +5,12 @@ module TodoStoreReducer = struct
     | TodoInvalidated
     | CityFavorited of string
     | CityUnfavorited of string
-    | UpdateFeed of Feed_screen.Domain.post list
+    | UpdateFeed of Feed_domain.post list
 
   type store =
     { todos: string list
     ; favorite_cities: string list
-    ; feed: Feed_screen.Domain.post list }
+    ; feed: Feed_domain.post list }
 
   let empty_store = {todos= []; favorite_cities= []; feed= []}
 
@@ -19,7 +19,7 @@ module TodoStoreReducer = struct
     | TodoInvalidated ->
         db
     | UpdateFeed xs ->
-      { db with feed = xs}
+        {db with feed= xs}
     | TodoCreated x ->
         {db with todos= x :: db.todos}
     | TodoRemoved x ->
@@ -33,8 +33,9 @@ module TodoStoreReducer = struct
     match e with
     | TodoInvalidated ->
         ("SELECT 1", [])
-    | UpdateFeed xs ->
-        failwith "???"
+    | UpdateFeed x ->
+        let v = Marshal.to_string x [] in
+        ("DELETE FROM feed_cache; INSERT INTO feed_cache VALUES (?)", [v])
     | TodoCreated x ->
         ("INSERT INTO todos VALUES (?)", [x])
     | TodoRemoved x ->
@@ -50,7 +51,12 @@ module TodoStoreReducer = struct
     ; ( "CREATE TABLE IF NOT EXISTS favorite_cities (value TEXT); SELECT * \
          FROM favorite_cities"
       , fun row db -> {db with favorite_cities= row.(0) :: db.favorite_cities}
-      ) ]
+      )
+    ; ( "CREATE TABLE IF NOT EXISTS feed_cache (value TEXT); SELECT * FROM \
+         feed_cache"
+      , fun row db ->
+          let x : Feed_domain.post list = Marshal.from_string row.(0) 0 in
+          {db with feed= x} ) ]
 end
 
 module type StoreReducerSig = sig
