@@ -1,6 +1,6 @@
 let ( >> ) f g x = g (f x)
 
-module ListEx = struct
+module Listy = struct
   let reduce f empty xs =
     match xs with
     | [x] ->
@@ -10,6 +10,8 @@ module ListEx = struct
     | [] ->
         empty ()
 end
+
+let fail (line, msg) = failwith (line ^ " - " ^ msg)
 
 let hd_opt = function x :: _ -> Some x | [] -> None
 

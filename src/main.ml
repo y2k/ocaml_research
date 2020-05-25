@@ -19,7 +19,7 @@ module Application = struct
   let render_string model =
     let id_to_string complex_id =
       complex_id |> List.map string_of_int
-      |> ListEx.reduce (sprintf "%s-%s") (fun _ -> "")
+      |> Listy.reduce (sprintf "%s-%s") (fun _ -> "")
     in
     render_dynamic model
     |> List.map (function

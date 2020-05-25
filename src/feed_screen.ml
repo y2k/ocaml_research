@@ -19,7 +19,7 @@ let update dispatch model = function
   | StoreLoaded db ->
       ({model with posts= db.feed}, [])
   | PostsLoaded (Ok posts) ->
-      ( { posts= posts |> List.filter (fun x -> Option.is_some x.image)
+      ( { posts= posts |> List.filter (fun x -> Array.length x.image > 0)
         ; status= Finished }
       , [`SendEvent (D.UpdateFeed posts, fun db -> StoreLoaded db |> dispatch)]
       )
@@ -48,9 +48,7 @@ let view_item post =
     [("style", "padding: 0px 4px 4px")]
     [ div
         [ ( "style"
-          , let url, aspect =
-              Image.urlWithHeight 300. (Option.get post.image)
-            in
+          , let url, aspect = Image.urlWithHeight 300. post.image.(0) in
             Printf.sprintf
               "width: 100%%; padding-top: %f%%; background-size: 100%% 100%%; \
                background-image: url(%s)"

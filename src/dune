@@ -11,4 +11,5 @@
     websocket-lwt-unix
     yojson
     ppx_deriving_yojson.runtime
-    decoders-yojson sqlite3))
+    decoders-yojson
+    sqlite3))

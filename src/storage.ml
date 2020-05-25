@@ -1,3 +1,5 @@
+open Prelude
+
 module TodoStoreReducer = struct
   type event =
     | TodoCreated of string
@@ -33,9 +35,14 @@ module TodoStoreReducer = struct
     match e with
     | TodoInvalidated ->
         ("SELECT 1", [])
-    | UpdateFeed x ->
-        let v = Marshal.to_string x [] in
-        ("DELETE FROM feed_cache; INSERT INTO feed_cache VALUES (?)", [v])
+    | UpdateFeed posts ->
+        let open Yojson.Safe in
+        let json =
+          posts
+          |> List.map Feed_domain.post_to_yojson
+          |> fun x -> `List x |> to_string
+        in
+        ("DELETE FROM feed_cache; INSERT INTO feed_cache VALUES (?)", [json])
     | TodoCreated x ->
         ("INSERT INTO todos VALUES (?)", [x])
     | TodoRemoved x ->
@@ -55,8 +62,13 @@ module TodoStoreReducer = struct
     ; ( "CREATE TABLE IF NOT EXISTS feed_cache (value TEXT); SELECT * FROM \
          feed_cache"
       , fun row db ->
-          let x : Feed_domain.post list = Marshal.from_string row.(0) 0 in
-          {db with feed= x} ) ]
+          let open Yojson.Safe in
+          let feed =
+            from_string row.(0)
+            |> Util.convert_each Feed_domain.post_of_yojson
+            |> List.map (function Ok x -> x | Error e -> fail @@ __LOC_OF__ e)
+          in
+          {db with feed} ) ]
 end
 
 module type StoreReducerSig = sig
