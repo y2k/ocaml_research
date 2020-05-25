@@ -4,14 +4,14 @@
         {
             "label": "run",
             "type": "shell",
-            "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && rm -f hot-reload.log && ./src/_build/default/main.exe -hr hot-reload.log",
+            "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && rm -f hot-reload.log && rm -f main.db && ./src/_build/default/app/main.exe -hr hot-reload.log",
             "dependsOn": "build",
             "problemMatcher": []
         },
         {
             "label": "hot-reload",
             "type": "shell",
-            "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && ./src/_build/default/main.exe -hr hot-reload.log",
+            "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && ./src/_build/default/app/main.exe -hr hot-reload.log",
             "dependsOn": "build",
             "problemMatcher": []
         },
@@ -22,6 +22,15 @@
                 "reveal": "silent"
             },
             "command": "cd src && dune clean && dune build",
+            "problemMatcher": []
+        },
+        {
+            "label": "tests",
+            "type": "shell",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "command": "export CONDUIT_DEBUG=true && export OCAMLRUNPARAM=b && cd src && rm -f hot-reload.log && rm -f main.db && dune runtest",
             "problemMatcher": []
         },
         {

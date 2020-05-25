@@ -1,0 +1,15 @@
+(library
+  (flags (:standard -warn-error -A))
+  (name lib)
+  (preprocess (pps ppx_let lwt_ppx ppx_deriving_yojson))
+  (libraries 
+    str
+    cohttp-lwt-unix
+    cohttp
+    lwt
+    websocket
+    websocket-lwt-unix
+    yojson
+    ppx_deriving_yojson.runtime
+    decoders-yojson
+    sqlite3))

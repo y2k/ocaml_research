@@ -34,7 +34,7 @@ module TodoStoreReducer = struct
   let reduce_to_disk (e : event) =
     match e with
     | TodoInvalidated ->
-        ("SELECT 1", [])
+        [("SELECT 1", [])]
     | UpdateFeed posts ->
         let open Yojson.Safe in
         let json =
@@ -42,15 +42,16 @@ module TodoStoreReducer = struct
           |> List.map Feed_domain.post_to_yojson
           |> fun x -> `List x |> to_string
         in
-        ("DELETE FROM feed_cache; INSERT INTO feed_cache VALUES (?)", [json])
+        [ ("DELETE FROM feed_cache", [])
+        ; ("INSERT INTO feed_cache VALUES (?)", [json]) ]
     | TodoCreated x ->
-        ("INSERT INTO todos VALUES (?)", [x])
+        [("INSERT INTO todos VALUES (?)", [x])]
     | TodoRemoved x ->
-        ("DELETE FROM todos WHERE value = ?", [x])
+        [("DELETE FROM todos WHERE value = ?", [x])]
     | CityFavorited x ->
-        ("INSERT INTO favorite_cities VALUES (?)", [x])
+        [("INSERT INTO favorite_cities VALUES (?)", [x])]
     | CityUnfavorited x ->
-        ("DELETE FROM favorite_cities WHERE value = ?", [x])
+        [("DELETE FROM favorite_cities WHERE value = ?", [x])]
 
   let restore_from_disk =
     [ ( "CREATE TABLE IF NOT EXISTS todos (value TEXT); SELECT * FROM todos"
@@ -80,7 +81,7 @@ module type StoreReducerSig = sig
 
   val reduce_to_memory : event -> store -> store
 
-  val reduce_to_disk : event -> string * string list
+  val reduce_to_disk : event -> (string * string list) list
 
   val restore_from_disk : (string * (string array -> store -> store)) list
 end
@@ -93,7 +94,7 @@ end = struct
   let restore db (store : F.store) =
     let restore' store (sql, reduce) =
       let sr = ref store in
-      ignore
+      Rc.check
         (exec_not_null_no_headers db sql ~cb:(fun row ->
              let s = !sr in
              sr := reduce row s)) ;
@@ -104,15 +105,17 @@ end = struct
   let init db_name =
     let store = ref F.empty_store in
     let db = db_open db_name in
+    let reduce_to_disk' (sql, params) =
+      let stmt = prepare db sql in
+      Rc.check (reset stmt) ;
+      params |> List.iteri (fun i x -> ignore (bind stmt (i + 1) (Data.BLOB x))) ;
+      ignore (step stmt) ;
+      Rc.check (finalize stmt)
+    in
     store := restore db !store ;
     fun (e : F.event) ->
       store := F.reduce_to_memory e !store ;
-      let sql, params = F.reduce_to_disk e in
-      let stmt = prepare db sql in
-      ignore (reset stmt) ;
-      params |> List.iteri (fun i x -> ignore (bind stmt (i + 1) (Data.TEXT x))) ;
-      ignore (step stmt) ;
-      ignore (finalize stmt) ;
+      F.reduce_to_disk e |> List.iter reduce_to_disk' ;
       !store
 end
 

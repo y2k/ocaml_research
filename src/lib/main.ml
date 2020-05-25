@@ -191,7 +191,7 @@ let parse_args () =
   in
   Arg.parse speclist print_endline ""
 
-let () =
+let run () =
   parse_args () ;
   Websocket_client.try_reload_model_from_disk () ;
   [ Server.create

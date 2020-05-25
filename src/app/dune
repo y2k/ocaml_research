@@ -3,6 +3,7 @@
   (name main)
   (preprocess (pps ppx_let lwt_ppx ppx_deriving_yojson))
   (libraries 
+    lib
     str
     cohttp-lwt-unix
     cohttp

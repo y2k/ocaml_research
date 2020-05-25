@@ -17,10 +17,11 @@ let init dispatch =
 
 let update dispatch model = function
   | StoreLoaded db ->
-      ({model with posts= db.feed}, [])
+      ( { model with
+          posts= db.feed |> List.filter (fun x -> Array.length x.image > 0) }
+      , [] )
   | PostsLoaded (Ok posts) ->
-      ( { posts= posts |> List.filter (fun x -> Array.length x.image > 0)
-        ; status= Finished }
+      ( {model with status= Finished}
       , [`SendEvent (D.UpdateFeed posts, fun db -> StoreLoaded db |> dispatch)]
       )
   | PostsLoaded (Error _) ->

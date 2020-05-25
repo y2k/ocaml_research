@@ -311,27 +311,27 @@ end
 module EffectHandler = struct
   let store = Storage.TodoStore.init "main.db"
 
-  let run_effect = function
+  let run_effect_lwt = function
     | `ShowNotification msg ->
         RemoteTransaction.run (Example.show_notification msg)
-        |> Lwt.ignore_result
     | `ShowToast msg ->
         RemoteTransaction.run (fun env ->
             let%lwt toast =
               Toast.makeText env.context msg Toast._LENGTH_SHORT
             in
             toast#show)
-        |> Lwt.ignore_result
     | `WebRequest ((url : string), (callback : (string, exn) result -> unit)) ->
         let open Cohttp_lwt in
         let open Cohttp_lwt_unix in
         Uri.of_string url |> Client.get
         |> (Fun.flip Lwt.bind) (fun (_, body) -> Body.to_string body)
         |> Lwt_result.catch
-        |> (Fun.flip Lwt.on_success) (fun x -> callback x)
+        |> Lwt.map (fun x -> callback x)
     | `SendEvent (e, callback) ->
         let db = store e in
-        callback db
+        callback db ; Lwt.return ()
+
+  let run_effect eff = run_effect_lwt eff |> Lwt.ignore_result
 
   let run_effects effects = effects |> List.iter run_effect
 end
