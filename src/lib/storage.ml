@@ -87,9 +87,17 @@ module type StoreReducerSig = sig
 end
 
 module PersistentStore (F : StoreReducerSig) : sig
-  val init : string -> F.event -> F.store
+  type t
+
+  val open_db : string -> t
+
+  val close_db : t -> unit
+
+  val init : t -> F.event -> F.store
 end = struct
   open Sqlite3
+
+  type t = db
 
   let restore db (store : F.store) =
     let restore' store (sql, reduce) =
@@ -102,9 +110,12 @@ end = struct
     in
     F.restore_from_disk |> List.fold_left restore' store
 
-  let init db_name =
+  let open_db db_name = db_open db_name
+
+  let close_db db = db_close db |> ignore
+
+  let init db =
     let store = ref F.empty_store in
-    let db = db_open db_name in
     let reduce_to_disk' (sql, params) =
       let stmt = prepare db sql in
       Rc.check (reset stmt) ;

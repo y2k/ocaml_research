@@ -309,7 +309,7 @@ module Example = struct
 end
 
 module EffectHandler = struct
-  let store = Storage.TodoStore.init "main.db"
+  let store : (unit -> Storage.TodoStore.t) ref = ref (fun _ -> failwith "todo")
 
   let run_effect_lwt = function
     | `ShowNotification msg ->
@@ -328,7 +328,8 @@ module EffectHandler = struct
         |> Lwt_result.catch
         |> Lwt.map (fun x -> callback x)
     | `SendEvent (e, callback) ->
-        let db = store e in
+        let b = !store () in
+        let db = Storage.TodoStore.init b e in
         callback db ; Lwt.return ()
 
   let run_effect eff = run_effect_lwt eff |> Lwt.ignore_result

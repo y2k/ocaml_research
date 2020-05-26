@@ -9,6 +9,8 @@ let test_post : Lib.Feed_domain.post =
 module TestRunner = struct
   module E = Lib.Remote.EffectHandler
 
+  let reset () = ()
+
   let run_init init update view =
     let msg_buffer = ref [] in
     let model, effs = init (fun m -> msg_buffer := m :: !msg_buffer) in
@@ -34,15 +36,18 @@ let%test _ =
   model = {posts= []; status= Loading}
 
 let%test "first open screen" =
+  TestRunner.reset () ;
   let model = TestRunner.run_init init update view in
   model.status = Finished && List.length model.posts = 0
 
 let%test "second open screen with cached data" =
+  TestRunner.reset () ;
   TestRunner.run_init init update view |> ignore ;
   let model = TestRunner.run_init init update view in
   model.status = Finished && List.length model.posts > 0
 
 let%test _ =
+  TestRunner.reset () ;
   let model = {posts= []; status= Loading} in
   let model =
     TestRunner.run_update update view model (PostsLoaded (Ok [test_post]))
