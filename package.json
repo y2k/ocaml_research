@@ -11,10 +11,12 @@
     "@material/mwc-snackbar": "^0.18.0",
     "@material/mwc-textfield": "^0.18.0",
     "@material/mwc-top-app-bar": "^0.18.0",
-    "@webcomponents/webcomponentsjs": "^2.4.3"
+    "@webcomponents/webcomponentsjs": "^2.4.4"
   },
   "devDependencies": {
-    "es-dev-server": "^1.46.5",
-    "rollup": "^2.7.2"
+    "es-dev-server": "^1.57.2",
+    "rollup": "^2.25.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-pnp-resolve": "^2.0.0"
   }
 }

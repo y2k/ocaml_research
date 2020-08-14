@@ -31,3 +31,9 @@ node_modules/
 output/
 *.log
 *.db
+
+# Yarn 2.0
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+.pnp.*

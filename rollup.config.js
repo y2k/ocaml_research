@@ -1,4 +1,5 @@
-import resolve from '@rollup/plugin-node-resolve';
+const nodeResolve = require(`rollup-plugin-node-resolve`);
+const pnpResolve = require(`rollup-plugin-pnp-resolve`);
 
 export default {
   input: 'material-dependencies',
@@ -6,5 +7,8 @@ export default {
     file: 'output/bundle.js',
     format: 'cjs'
   },
-  plugins: [resolve()]
+  plugins: [
+    nodeResolve(),
+    pnpResolve()
+  ]
 };
