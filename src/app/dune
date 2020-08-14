@@ -1,7 +1,7 @@
 (executable
   (flags (:standard -warn-error -A))
   (name main)
-  (preprocess (pps ppx_let lwt_ppx ppx_deriving_yojson))
+  (preprocess (pps ppx_deriving_yojson))
   (libraries 
     lib
     str

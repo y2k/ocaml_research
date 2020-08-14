@@ -1,7 +1,7 @@
 (library
   (flags (:standard -warn-error -A))
   (name lib)
-  (preprocess (pps ppx_let lwt_ppx ppx_deriving_yojson))
+  (preprocess (pps ppx_deriving_yojson))
   (libraries 
     str
     cohttp-lwt-unix

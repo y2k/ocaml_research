@@ -1,4 +1,6 @@
 module Remote = struct
+  open Lwt.Syntax
+
   type obj = {handler: int}
 
   type context = {obj: obj}
@@ -7,11 +9,12 @@ module Remote = struct
 
   module Client = struct
     open Lwt
+    open Lwt.Syntax
     open Cohttp_lwt
     open Cohttp_lwt_unix
 
     let send (form : (string * string list) list) : string Lwt.t =
-      let%lwt _, body =
+      let* _, body =
         Uri.of_string "http://192.168.1.33:10000/"
         |> Client.post ~chunked:false
              ~body:(Body.of_string (Uri.encoded_of_query form))
@@ -56,7 +59,7 @@ module Remote = struct
       ; ("method", [method'])
       ; ("args", args |> List.map type_to_string) ]
     in
-    let%lwt response = Client.send request in
+    let* response = Client.send request in
     Lwt.return @@ string_to_type response
 
   let invoke_method (instance : obj) (method' : string)
@@ -67,7 +70,7 @@ module Remote = struct
       ; ("method", [method'])
       ; ("args", args |> List.map type_to_string) ]
     in
-    let%lwt response = Client.send request in
+    let* response = Client.send request in
     Lwt.return @@ string_to_type response
 
   let invoke_constructor (type' : string) (args : remote_type list) :
@@ -77,17 +80,20 @@ module Remote = struct
       ; ("type", [type'])
       ; ("args", args |> List.map type_to_string) ]
     in
-    let%lwt response = Client.send request in
+    let* response = Client.send request in
     Lwt.return @@ string_to_type response
 end
 
 module RemoteTransaction = struct
+  open Lwt.Syntax
+
   type env = {context: Remote.context; activity: Remote.context}
 
   let run (f : env -> unit Lwt.t) : unit Lwt.t =
-    Remote.Client.begin_scope () ;%lwt
+    let* _ = Remote.Client.begin_scope () in
     let e = {context= {obj= {handler= 0}}; activity= {obj= {handler= 0}}} in
-    f e ;%lwt Remote.Client.end_scope ()
+    let* _ = f e in
+    Remote.Client.end_scope ()
 end
 
 class toast id =
@@ -261,6 +267,7 @@ end
 
 module Example = struct
   open Lwt
+  open Lwt.Syntax
 
   let ( !! ) x = Option.get x
 
@@ -269,46 +276,48 @@ module Example = struct
   let setImageBitmap (_ : Bitmap.t) : unit = ()
 
   let show_notification text (env : RemoteTransaction.env) =
-    let%lwt icon = OcamlUtils.drawable "ic_notification" in
-    let%lwt nb = NotificationBuilder.build env.context "default" in
-    let%lwt _ = nb#setContentTitle "OCaml remote" in
-    let%lwt _ = nb#setContentText text in
-    let%lwt _ = nb#setSmallIcon icon in
-    let%lwt n = nb#build in
-    let%lwt nm = NotificationManager.from env.context in
+    let* icon = OcamlUtils.drawable "ic_notification" in
+    let* nb = NotificationBuilder.build env.context "default" in
+    let* _ = nb#setContentTitle "OCaml remote" in
+    let* _ = nb#setContentText text in
+    let* _ = nb#setSmallIcon icon in
+    let* n = nb#build in
+    let* nm = NotificationManager.from env.context in
     nm#notify 1 n
 
   let show_toast (env : RemoteTransaction.env) =
-    let%lwt toast = Toast.makeText env.context "Hello" Toast._LENGTH_SHORT in
-    toast#show ;%lwt
-    let%lwt toast =
+    let* toast = Toast.makeText env.context "Hello" Toast._LENGTH_SHORT in
+    let* _ = toast#show in
+    let* toast =
       Toast.makeText env.context "from OCaml" Toast._LENGTH_LONG
     in
-    toast#setGravity Gravity._CENTER 0 0 ;%lwt
+    let* _ = toast#setGravity Gravity._CENTER 0 0 in
     toast#show
 
   let request_image_from_camera (env : RemoteTransaction.env) =
-    let%lwt intent = Intent.new' Intent._IMAGE_CAPTURE in
-    let%lwt exists = Intent.resolveActivity intent env.context in
+    let* intent = Intent.new' Intent._IMAGE_CAPTURE in
+    let* exists = Intent.resolveActivity intent env.context in
     if Option.is_some exists then
       Activity.startActivityForResult (Activity.fromEnv env) intent
         _REQUEST_IMAGE_CAPTURE
     else return ()
 
   let receive_image_from_camera (env : RemoteTransaction.env) =
-    let%lwt requestCode, resultCode, data = Environment.onActivityResult env in
+    let* requestCode, resultCode, data = Environment.onActivityResult env in
     if requestCode = _REQUEST_IMAGE_CAPTURE && resultCode = Activity._RESULT_OK
     then (
-      let%lwt extras = Intent.extras !!data in
-      let%lwt image_bitmap = Bundle.get !!extras "data" >|= Bitmap.cast in
-      let%lwt width = Bitmap.width image_bitmap in
-      let%lwt height = Bitmap.height image_bitmap in
+      let* extras = Intent.extras !!data in
+      let* image_bitmap = Bundle.get !!extras "data" >|= Bitmap.cast in
+      let* width = Bitmap.width image_bitmap in
+      let* height = Bitmap.height image_bitmap in
       Printf.printf "size = %i x %i" width height |> ignore ;
       return @@ setImageBitmap image_bitmap )
     else return ()
 end
 
 module EffectHandler = struct
+  open Lwt.Syntax
+
   let store : (unit -> Storage.TodoStore.t) ref = ref (fun _ -> failwith "todo")
 
   let run_effect_lwt = function
@@ -316,7 +325,7 @@ module EffectHandler = struct
         RemoteTransaction.run (Example.show_notification msg)
     | `ShowToast msg ->
         RemoteTransaction.run (fun env ->
-            let%lwt toast =
+            let* toast =
               Toast.makeText env.context msg Toast._LENGTH_SHORT
             in
             toast#show)
