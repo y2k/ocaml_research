@@ -156,7 +156,7 @@ module View = struct
           (Examples_screen.View.view (fun x -> ExamplesMsg x |> dispatch))
     | Weather sub_model ->
         Diff.LazyView.view sub_model
-          (Weather_screen.view (fun x -> WeatherMsg x |> dispatch))
+          (Weather_screen.View.view (fun x -> WeatherMsg x |> dispatch))
     | FeedModel sub_model ->
         Diff.LazyView.view sub_model
           (Feed_screen.view (fun x -> FeedMsg x |> dispatch))

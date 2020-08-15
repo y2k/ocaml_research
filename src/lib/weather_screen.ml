@@ -27,6 +27,14 @@ let init dispatch =
   ( {city= ""; temp= None; error= None; loading= false; favorite= []}
   , [`SendEvent (D.TodoInvalidated, fun db -> StoreUpdated db |> dispatch)] )
 
+let downloadWeather dispatch token city =
+  download
+    (Printf.sprintf
+       "https://api.openweathermap.org/data/2.5/weather?appid=%s&q=%s&units=metric&lang=en"
+       token city)
+    deserialize
+    (loadTemperatureEnd >> dispatch)
+
 let update (dispatch : msg -> unit) model msg =
   match msg with
   | StoreUpdated db ->
@@ -48,70 +56,67 @@ let update (dispatch : msg -> unit) model msg =
   | LoadTemperature ->
       let token = Sys.getenv "OPEN_WEATHER_API" in
       ( {model with error= None; loading= true}
-      , [ download
-            (Printf.sprintf
-               "https://api.openweathermap.org/data/2.5/weather?appid=%s&q=%s&units=metric&lang=en"
-               token model.city)
-            deserialize
-            (loadTemperatureEnd >> dispatch) ] )
+      , [downloadWeather dispatch token model.city] )
   | LoadTemperatureEnd (Ok temp) ->
       ({model with temp= Some temp; loading= false}, [])
   | LoadTemperatureEnd (Error error) ->
       ({model with error= Some (Printexc.to_string error); loading= false}, [])
 
-open Dsl
-module M = Dsl.Material
+module View = struct
+  open Dsl
+  module M = Dsl.Material
 
-let viewItem dispatch i x =
-  M.list_item
-    [("hasmeta", ""); ("onclick", dispatch @@ SelectFavorite i)]
-    [ span [] [text x]
-    ; span
-        [ ("slot", "meta")
-        ; cls "material-icons"
-        ; ("onclick", dispatch @@ DeleteFavorite i) ]
-        [text "delete"] ]
+  let viewItem dispatch i x =
+    M.list_item
+      [("hasmeta", ""); ("onclick", dispatch @@ SelectFavorite i)]
+      [ span [] [text x]
+      ; span
+          [ ("slot", "meta")
+          ; cls "material-icons"
+          ; ("onclick", dispatch @@ DeleteFavorite i) ]
+          [text "delete"] ]
 
-let view_temp model =
-  match model.temp with
-  | Some temp ->
-      h1 [("style", "align-self: center")] [text @@ Printf.sprintf "%g C" temp]
-  | None ->
-      div [] []
+  let view_temp model =
+    match model.temp with
+    | Some temp ->
+        h1 [("style", "align-self: center")] [text @@ Printf.sprintf "%g C" temp]
+    | None ->
+        div [] []
 
-let view_progress = function
-  | true ->
-      M.linear_progress [("indeterminate", "")]
-  | false ->
-      div [] []
+  let view_progress = function
+    | true ->
+        M.linear_progress [("indeterminate", "")]
+    | false ->
+        div [] []
 
-let view_error model =
-  match model.error with
-  | None ->
-      div [] []
-  | Some error ->
-      M.snackbar [("isopen", ""); ("labelText", error)] []
+  let view_error model =
+    match model.error with
+    | None ->
+        div [] []
+    | Some error ->
+        M.snackbar [("isopen", ""); ("labelText", error)] []
 
-let view dispatch model =
-  div
-    [("style", "display: flex; flex-direction: column")]
-    [ div
-        [("style", "display: flex; align-items: center")]
-        [ M.textfield
-            [ ("style", "flex: 1")
-            ; ("label", "Enter city name")
-            ; ("value", model.city)
-            ; ("oninput", dispatch @@ CityChanged value_source) ]
-        ; M.button
-            [ ("label", "★")
-            ; ("raised", "")
-            ; ("onclick", dispatch AddToFavorite) ] ]
-    ; view_progress model.loading
-    ; M.button
-        [ ("label", "Load wheather")
-        ; ("style", "margin: 4px")
-        ; ("raised", "")
-        ; ("onclick", dispatch LoadTemperature) ]
-    ; view_temp model
-    ; M.list [] (model.favorite |> List.mapi (viewItem dispatch))
-    ; view_error model ]
+  let view dispatch model =
+    div
+      [("style", "display: flex; flex-direction: column")]
+      [ div
+          [("style", "display: flex; align-items: center")]
+          [ M.textfield
+              [ ("style", "flex: 1")
+              ; ("label", "Enter city name")
+              ; ("value", model.city)
+              ; ("oninput", dispatch @@ CityChanged value_source) ]
+          ; M.button
+              [ ("label", "★")
+              ; ("raised", "")
+              ; ("onclick", dispatch AddToFavorite) ] ]
+      ; view_progress model.loading
+      ; M.button
+          [ ("label", "Load wheather")
+          ; ("style", "margin: 4px")
+          ; ("raised", "")
+          ; ("onclick", dispatch LoadTemperature) ]
+      ; view_temp model
+      ; M.list [] (model.favorite |> List.mapi (viewItem dispatch))
+      ; view_error model ]
+end
