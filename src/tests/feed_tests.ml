@@ -19,7 +19,7 @@ module TestRunner = struct
     !msg_buffer
     |> List.fold_left (fun model msg -> update ignore model msg |> fst) model
 
-  let run_update update view model msg =
+  let run_update update view (model : 'model) (msg : 'msg) =
     view ignore model |> ignore ;
     let msg_buffer = ref [] in
     let model, effs =

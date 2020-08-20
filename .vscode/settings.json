@@ -1,4 +1,8 @@
 {
     "editor.tabSize": 2,
-    "ocaml-formatter.profile": "ocamlformat"
+    "ocaml-formatter.profile": "ocamlformat",
+    "ocaml.sandbox": {
+        "kind": "opam",
+        "switch": "default"
+    }
 }
